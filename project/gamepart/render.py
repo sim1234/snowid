@@ -12,11 +12,13 @@ _t_circles = typing.Union[_t_circle, typing.List[_t_circle]]
 class GfxRenderer(sdl2.ext.Renderer):
     """Renderer with gfx"""
 
-    def _shape(self, circles: _t_circles, color=None, *, gfx_fun=None):
+    def _shape(self, shapes: _t_circles, color=None, *, gfx_fun=None, map_pos=int):
         """Draws one or multiple shapes on the renderer using gfx_fun."""
         # ((x, ...), ...)
-        if not isinstance(circles[0], typing.Iterable):  # single circle
-            circles = [circles]
+        if not shapes:
+            return
+        if not isinstance(shapes[0], typing.Iterable):  # single
+            shapes = [shapes]
 
         tmp_color = self.color
         tmp_blend = self.blendmode
@@ -26,14 +28,14 @@ class GfxRenderer(sdl2.ext.Renderer):
         if tmp_blend != sdl2.SDL_BLENDMODE_BLEND:  # Hack over sdl2_gfx
             color.a = 255
 
-        for cords in circles:
+        for cords in shapes:
             ret = gfx_fun(
                 self.sdlrenderer,
-                *map(int, cords),
+                *map(map_pos, cords),
                 color.r,
                 color.g,
                 color.b,
-                color.a,
+                color.a
             )
             if ret == -1:
                 raise sdl2.ext.SDLError()
@@ -50,11 +52,17 @@ class GfxRenderer(sdl2.ext.Renderer):
     def aa_circle(self, circles: _t_circles, color=None):
         return self._shape(circles, color, gfx_fun=sdl2.sdlgfx.aacircleRGBA)
 
+    def pixel(self, pixels, color=None):
+        return self._shape(pixels, color, gfx_fun=sdl2.sdlgfx.pixelRGBA)
+
     def rounded_rectangle(self, rects, color=None):
         return self._shape(rects, color, gfx_fun=sdl2.sdlgfx.roundedRectangleRGBA)
 
     def rounded_box(self, rects, color=None):
         return self._shape(rects, color, gfx_fun=sdl2.sdlgfx.roundedBoxRGBA)
+
+    def line(self, lines, color=None):
+        return self._shape(lines, color, gfx_fun=sdl2.sdlgfx.lineRGBA)
 
     def aa_line(self, lines, color=None):
         return self._shape(lines, color, gfx_fun=sdl2.sdlgfx.aalineRGBA)

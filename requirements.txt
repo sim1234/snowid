@@ -1,4 +1,6 @@
 PySDL2
+Ipython
+scipy
 
 Black
 flake8

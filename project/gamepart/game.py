@@ -31,6 +31,7 @@ class Game:
         self.renderer: GfxRenderer = None
         self.sprite_factory: sdl2.ext.SpriteFactory = None
         self.font_manager: sdl2.ext.FontManager = None
+        self.frame_num = 0
         self.init_display()
         self.init_renderer()
         self.init_sprite_factory()
@@ -102,6 +103,7 @@ class Game:
             self.renderer.copy(text, None, pos)
 
     def frame(self):
+        self.frame_num += 1
         if self.scene_switch_queue:
             self.switch_scene(self.scene_switch_queue.popleft())
         for event in sdl2.ext.get_events():

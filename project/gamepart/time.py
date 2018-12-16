@@ -37,7 +37,7 @@ class FPSCounter:
             time.sleep(sleep / 1000)
             actual = (time.perf_counter_ns() - start) / 1_000_000
             fps = 1 / history[-1]
-            logger.debug("FPS inhibition: %fms (%fms) FPS %f", sleep, fps, actual)
+            logger.debug("FPS inhibition: %fms (%fms) FPS %f", sleep, actual, fps)
 
     def clear(self):
         while self.history:
