@@ -1,17 +1,16 @@
-import itertools
 import typing
 
+import pymunk
+
+from ..time import TimeFeeder
 from .object import Object
-from .collide import CollidableObject
 
 
 class World:
     def __init__(self, time_step: float = 1 / 2 ** 10, speed: float = 1.0):
-        self.time_step = time_step
+        self.feeder = TimeFeeder(time_step, speed)
         self.objects: typing.List[Object] = []
-        self.speed = speed
-        self.system_time = 0.0
-        self.world_time = 0.0
+        self.space = pymunk.Space()
 
     def get_objects(self, *types) -> typing.Iterable[Object]:
         for obj in self.objects:
@@ -19,28 +18,26 @@ class World:
                 yield obj
 
     def add(self, *objects: Object):
+        for obj in objects:
+            self.space.add(obj.body, *obj.shapes)
         self.objects.extend(objects)
 
+    def remove(self, *objects: Object):
+        for obj in objects:
+            self.space.remove(obj.body, *obj.shapes)
+            self.objects.remove(obj)
+
     def clear(self):
+        for obj in self.objects:
+            self.space.remove(obj.body, *obj.shapes)
         self.objects.clear()
 
     def tick(self, delta: float):
-        self.system_time += delta * self.speed
-        x = 0
-        while self.world_time < self.system_time:
-            self.world_time += self.time_step
-            self._tick()
-            x += 1
-            if x > 10:
-                break
+        for delta in self.feeder.tick(delta, 30):
+            self.space.step(delta)
 
-    def _tick(self):
-        collidables = self.get_objects(CollidableObject)
-        for obj1, obj2 in itertools.combinations(collidables, 2):
-            obj1.collide(obj2, self.time_step)
+    def catch_up(self):
+        return self.feeder.catch_up()
 
-        for obj in self.objects:
-            obj.tick(self.time_step)
-
-    def get_energy(self) -> float:
-        return sum([o.get_energy() for o in self.objects])
+    def __del__(self):
+        self.clear()

@@ -18,6 +18,7 @@ class Game:
     """Main game wrapper"""
 
     def __init__(self):
+        logger.debug("Starting")
         self.init()
 
         self.config = self.get_config()
@@ -40,21 +41,28 @@ class Game:
 
         self.fps_counter = FPSCounter()
         self.key_state: typing.Dict[int, bool] = sdl2.SDL_GetKeyboardState(None)
-        self.ticks = time.monotonic()
+        self.ticks = 0.0
         self.ticks_delta = 0.0
         self.running = False
         self.scenes: typing.Dict[str, "Scene"] = {}
         self.scene_switch_queue = collections.deque()
         self.active_scene: "Scene" = self.add_exit_scene()
         self.context: Context = self.get_initial_context()
+        self.logger.debug("Initializing scenes")
         self.init_scenes()
+        self.fps_counter.clear()
+        self.ticks = time.monotonic()
+        self.logger.info("All systems nominal")
+
+    @property
+    def logger(self) -> logging.Logger:
+        return logger
 
     def init(self):
-        logger.debug("Starting")
         sdl2.ext.init()
 
     def init_display(self):
-        logger.debug("Initializing display")
+        self.logger.debug("Initializing display")
         flags = None
         if self.fullscreen:
             flags = sdl2.SDL_WINDOW_FULLSCREEN
@@ -64,16 +72,17 @@ class Game:
         self.window.show()
 
     def init_renderer(self):
+        self.logger.debug("Initializing renderer")
         self.renderer = GfxRenderer(self.window)
 
     def init_sprite_factory(self):
+        self.logger.debug("Initializing sprite factory")
         self.sprite_factory = sdl2.ext.SpriteFactory(renderer=self.renderer)
 
     def init_font_manager(self):
-        logger.warning("No FontManager initialized!")
+        self.logger.warning("No FontManager initialized!")
 
     def init_scenes(self):
-        logger.debug("Initializing scenes")
         for scene in self.scenes.values():
             scene.init()
         self.active_scene.start(self.context)
@@ -151,6 +160,7 @@ class Game:
         while self.running:
             self.frame()
         self.stop()
+        self.logger.info("Bye")
 
     def wrapped_main_loop(self):
         try:

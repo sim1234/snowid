@@ -1,7 +1,6 @@
 PySDL2
 Ipython
-scipy
+pymunk
 
 Black
 flake8
-

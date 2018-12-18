@@ -37,8 +37,39 @@ class FPSCounter:
             time.sleep(sleep / 1000)
             actual = (time.perf_counter_ns() - start) / 1_000_000
             fps = 1 / history[-1]
-            logger.debug("FPS inhibition: %fms (%fms) FPS %f", sleep, actual, fps)
+            logger.log(0, "FPS inhibition: %fms (%fms) FPS %f", sleep, actual, fps)
 
     def clear(self):
+        self.last_frame = time.perf_counter()
         while self.history:
             self.history.pop()
+
+
+class TimeFeeder:
+    """Quantize passed time into time_step chunks"""
+
+    def __init__(self, time_step: float = 1 / 2 ** 10, speed: float = 1.0):
+        self.time_step = time_step
+        self.speed = speed
+        self.system_time = 0.0
+        self.world_time = 0.0
+
+    def tick(self, delta: float, max_iter: int = 0):
+        self.system_time += delta * self.speed
+        x = 0
+        while self.world_time < self.system_time:
+            self.world_time += self.time_step
+            yield self.time_step
+            x += 1
+            if max_iter and x >= max_iter:
+                logger.warning(
+                    "World time is lagging by %d steps", self.lag // self.time_step
+                )
+                return
+
+    def catch_up(self) -> float:
+        return sum(self.tick(0))
+
+    @property
+    def lag(self):
+        return self.system_time - self.world_time

@@ -4,9 +4,16 @@ import os
 
 
 def setup():
+    # logging
+    logging.basicConfig(
+        level=int(os.environ.get("LOG_LEVEL", "0")),
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    )
+    logging.info("Starting...")
+
+    # PySDL2
     project = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     os.environ.setdefault("PYSDL2_DLL_PATH", os.path.join(project, "lib"))
-    logging.basicConfig(level=int(os.environ.get("LOG_LEVEL", "0")))
     import sdl2
 
     logging.info("Python %s", sys.version)
