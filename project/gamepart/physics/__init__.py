@@ -1,4 +1,7 @@
-from .utils import pymunk  # noqa: F401
+from .utils import pymunk, make_body, update_shape  # noqa: F401
 from .world import World  # noqa: F401
-from .object import Object, SimpleObject  # noqa: F401
-from .specific import Circle  # noqa: F401
+from .physicalobject import (  # noqa: F401
+    PhysicalObject,
+    SimplePhysicalObject,
+    PhysicalCircle,
+)

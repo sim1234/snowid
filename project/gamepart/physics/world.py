@@ -1,43 +1,30 @@
 import typing
 
-import pymunk
-
+from ..subsystem import SubSystem
 from ..time import TimeFeeder
-from .object import Object
+from .utils import pymunk
+from .physicalobject import PhysicalObject
 
 
-class World:
-    def __init__(self, time_step: float = 1 / 2 ** 10, speed: float = 1.0):
+class World(SubSystem[PhysicalObject]):
+    def __init__(self, time_step: float = 1 / 2 ** 8, speed: float = 1.0):
+        super(World, self).__init__()
         self.feeder = TimeFeeder(time_step, speed)
-        self.objects: typing.List[Object] = []
         self.space = pymunk.Space()
 
-    def get_objects(self, *types) -> typing.Iterable[Object]:
-        for obj in self.objects:
-            if isinstance(obj, types):
-                yield obj
-
-    def add(self, *objects: Object):
+    def add(self, *objects: PhysicalObject) -> typing.Iterable[PhysicalObject]:
         for obj in objects:
             self.space.add(obj.body, *obj.shapes)
-        self.objects.extend(objects)
+        return super().add(*objects)
 
-    def remove(self, *objects: Object):
+    def remove(self, *objects: PhysicalObject) -> typing.Iterable[PhysicalObject]:
         for obj in objects:
             self.space.remove(obj.body, *obj.shapes)
-            self.objects.remove(obj)
+        return super().remove(*objects)
 
-    def clear(self):
-        for obj in self.objects:
-            self.space.remove(obj.body, *obj.shapes)
-        self.objects.clear()
-
-    def tick(self, delta: float):
-        for delta in self.feeder.tick(delta, 30):
+    def tick(self, delta: float, max_iter: int = 10):
+        for delta in self.feeder.tick(delta, max_iter):
             self.space.step(delta)
 
     def catch_up(self):
         return self.feeder.catch_up()
-
-    def __del__(self):
-        self.clear()

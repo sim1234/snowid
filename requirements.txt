@@ -4,3 +4,4 @@ pymunk
 
 Black
 flake8
+mypy

@@ -39,38 +39,47 @@ class UserEventType:
         return f"{self.__class__.__name__}({self.type!r})"
 
 
-class Dispatcher:
+T = typing.TypeVar("T", bound=typing.Hashable)
+TD = typing.TypeVar("TD")
+
+
+class Dispatcher(typing.Generic[T, TD]):
     """Callback storage and dispatcher"""
 
     def __init__(self):
-        self.callbacks: typing.Dict[typing.Hashable, typing.List[typing.Callable]] = {}
+        self.callbacks: typing.Dict[T, typing.List[typing.Callable]] = {}
 
-    def on(self, key: typing.Hashable, callback: typing.Callable):
+    def on(self, key: T, callback: typing.Callable):
         if key not in self.callbacks:
             self.callbacks[key] = []
         self.callbacks[key].append(callback)
 
-    def __call__(self, key: typing.Hashable, *args, **kwargs):
+    @staticmethod
+    def get_key(data: TD) -> T:
+        return data  # type: ignore
+
+    def __call__(self, data: TD, *args, **kwargs):
+        key = self.get_key(data)
         for callback in self.callbacks.get(key, []):
-            ret = callback(*args, **kwargs)
+            ret = callback(data, *args, **kwargs)
             if ret:  # Stop event propagation
                 return ret
 
 
-class EventDispatcher(Dispatcher):
+class EventDispatcher(Dispatcher[int, sdl2.SDL_Event]):
     """Dispatcher for SDL_Events"""
 
-    def __call__(self, event: sdl2.SDL_Event, *args, **kwargs):
-        return super(EventDispatcher, self).__call__(event.type, event)
+    @staticmethod
+    def get_key(event: sdl2.SDL_Event):
+        return event.type
 
 
-class KeyEventDispatcher(Dispatcher):
+class KeyEventDispatcher(Dispatcher[typing.Tuple[int, int], sdl2.SDL_KeyboardEvent]):
     """Dispatcher for keyboards event"""
 
-    def __call__(self, event: sdl2.SDL_KeyboardEvent, *args, **kwargs):
-        return super(KeyEventDispatcher, self).__call__(
-            (event.type, event.key.keysym.sym), event
-        )
+    @staticmethod
+    def get_key(event: sdl2.SDL_KeyboardEvent):
+        return event.type, event.key.keysym.sym
 
     def on_up(self, key: sdl2.SDL_Keycode, callback: typing.Callable):
         return self.on((sdl2.SDL_KEYUP, key), callback)
@@ -79,13 +88,14 @@ class KeyEventDispatcher(Dispatcher):
         return self.on((sdl2.SDL_KEYDOWN, key), callback)
 
 
-class MouseEventDispatcher(Dispatcher):
+class MouseEventDispatcher(
+    Dispatcher[typing.Tuple[int, int], sdl2.SDL_MouseButtonEvent]
+):
     """Dispatcher for mouse button event"""
 
-    def __call__(self, event: sdl2.SDL_MouseButtonEvent, *args, **kwargs):
-        return super(MouseEventDispatcher, self).__call__(
-            (event.type, event.button.button), event
-        )
+    @staticmethod
+    def get_key(event: sdl2.SDL_MouseButtonEvent):
+        return event.type, event.button.button
 
     def on_up(self, key: int, callback: typing.Callable):
         return self.on((sdl2.SDL_MOUSEBUTTONUP, key), callback)

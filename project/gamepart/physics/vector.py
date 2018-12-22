@@ -2,6 +2,11 @@ import math
 import typing
 
 
+VectorLike = typing.Union[
+    "Vector", typing.Tuple[typing.SupportsFloat, typing.SupportsFloat]
+]
+
+
 class Vector:
     """2D vector"""
 
@@ -35,7 +40,7 @@ class Vector:
         self.y = y
         return self
 
-    def replace(self, other: "Vector"):
+    def replace(self, other: VectorLike):
         self.x = other[0]
         self.y = other[1]
         return self
@@ -54,25 +59,25 @@ class Vector:
             self.y = value
         raise IndexError()
 
-    def __add__(self, other: "Vector") -> "Vector":
+    def __add__(self, other: VectorLike) -> "Vector":
         return self.__class__(self.x + other[0], self.y + other[1])
 
-    def __iadd__(self, other: "Vector") -> "Vector":
+    def __iadd__(self, other: VectorLike) -> "Vector":
         self.x += other[0]
         self.y += other[1]
         return self
 
     __radd__ = __add__
 
-    def __sub__(self, other: "Vector") -> "Vector":
+    def __sub__(self, other: VectorLike) -> "Vector":
         return self.__class__(self.x - other[0], self.y - other[1])
 
-    def __isub__(self, other: "Vector") -> "Vector":
+    def __isub__(self, other: VectorLike) -> "Vector":
         self.x -= other[0]
         self.y -= other[1]
         return self
 
-    def __rsub__(self, other: "Vector"):
+    def __rsub__(self, other: VectorLike):
         return self.__class__(other[0] - self.y, other[1] - self.y)
 
     def __mul__(self, other: float) -> "Vector":
@@ -93,7 +98,7 @@ class Vector:
         self.y /= other
         return self
 
-    def __matmul__(self, other: "Vector") -> float:
+    def __matmul__(self, other: VectorLike) -> float:
         """Dot product"""
         return self.x * other[0] + self.y * other[1]
 
@@ -106,7 +111,7 @@ class Vector:
     def __invert__(self) -> "Vector":
         return self.__class__(self.y, self.x)
 
-    def __eq__(self, other: "Vector") -> bool:
+    def __eq__(self, other: VectorLike) -> bool:  # type: ignore
         return self.x == other[0] and self.y == other[1]
 
     def __hash__(self) -> int:
@@ -144,11 +149,11 @@ class Vector:
     def __complex__(self) -> complex:
         return complex(self.x, self.y)
 
-    def __iter__(self) -> float:
+    def __iter__(self) -> typing.Generator[float, None, None]:
         yield self.x
         yield self.y
 
-    def cross(self, other: "Vector") -> float:
+    def cross(self, other: VectorLike) -> float:
         """Pseudo cross product"""
         other = self.to(other)
         return self.r * other.r * math.sin(self.phi - other.phi)

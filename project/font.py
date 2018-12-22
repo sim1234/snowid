@@ -21,17 +21,17 @@ def render_font(
     color: sdl2.SDL_Color = None,
     bg_color: sdl2.SDL_Color = None,
 ):
-    text = bytes(text, "utf-8")
+    text_b = bytes(text, "utf-8")
     if color is None:
         color = sdl2.SDL_Color(255, 255, 255)
     if bg_color is None:
         bg_color = sdl2.SDL_Color(0, 0, 0)
 
     if bg_color == sdl2.SDL_Color(0, 0, 0):
-        print(font, text, color)
-        sf = sdl2.sdlttf.TTF_RenderUTF8_Blended(font, text, color)
+        print(font, text_b, color)
+        sf = sdl2.sdlttf.TTF_RenderUTF8_Blended(font, text_b, color)
     else:
-        sf = sdl2.sdlttf.TTF_RenderUTF8_Shaded(font, text, color, bg_color)
+        sf = sdl2.sdlttf.TTF_RenderUTF8_Shaded(font, text_b, color, bg_color)
     if not sf:
         raise sdl2.ext.SDLError(sdl2.sdlttf.TTF_GetError())
     return sf.contents

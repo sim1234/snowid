@@ -3,6 +3,7 @@ import sdl2.ext
 
 from .context import Context
 from .event import EventDispatcher, KeyEventDispatcher, MouseEventDispatcher
+from .render import GfxRenderer
 
 
 class Scene:
@@ -14,7 +15,7 @@ class Scene:
         self.args = args
         self.kwargs = kwargs
         self.is_first_frame = True
-        self.context: Context = None
+        self.context: Context = Context(None)
 
     def init(self):
         """Configure Scene"""
@@ -73,7 +74,7 @@ class SimpleScene(Scene):
             self.tick(self.game.ticks_delta)
         return self.every_frame(self.game.renderer)
 
-    def on_exit(self, event: sdl2.SDL_Event):
+    def on_exit(self, _: sdl2.SDL_Event):
         """Handle exit event"""
         self.exit()
 
@@ -81,10 +82,10 @@ class SimpleScene(Scene):
         """Exit the game"""
         return self.game.queue_scene_switch("exit")
 
-    def first_frame(self, renderer: sdl2.ext.Renderer):
+    def first_frame(self, renderer: GfxRenderer):
         """Generate first frame"""
 
-    def every_frame(self, renderer: sdl2.ext.Renderer):
+    def every_frame(self, renderer: GfxRenderer):
         """Generate frame"""
 
 

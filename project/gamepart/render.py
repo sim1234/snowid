@@ -7,18 +7,30 @@ import sdl2.ext
 
 _t_circle = typing.Tuple[typing.SupportsInt, typing.SupportsInt, typing.SupportsInt]
 _t_circles = typing.Union[_t_circle, typing.List[_t_circle]]
+_t_any = typing.Sequence[typing.SupportsInt]
+_t_anys = typing.Union[_t_any, typing.Sequence[_t_any]]
 
 
 class GfxRenderer(sdl2.ext.Renderer):
     """Renderer with gfx"""
 
-    def _shape(self, shapes: _t_circles, color=None, *, gfx_fun=None, map_pos=int):
+    color: sdl2.ext.Color
+    blendmode: int
+
+    def _shape(
+        self,
+        shapes: _t_anys,
+        color: sdl2.ext.Color = None,
+        *,
+        gfx_fun: typing.Callable = lambda: None,
+        map_pos: type = int
+    ):
         """Draws one or multiple shapes on the renderer using gfx_fun."""
         # ((x, ...), ...)
         if not shapes:
             return
-        if not isinstance(shapes[0], typing.Iterable):  # single
-            shapes = [shapes]
+        if not isinstance(shapes[0], typing.Sequence):  # single
+            shapes = [shapes]  # type: ignore
 
         tmp_color = self.color
         tmp_blend = self.blendmode
@@ -31,7 +43,7 @@ class GfxRenderer(sdl2.ext.Renderer):
         for cords in shapes:
             ret = gfx_fun(
                 self.sdlrenderer,
-                *map(map_pos, cords),
+                *map(map_pos, cords),  # type: ignore
                 color.r,
                 color.g,
                 color.b,

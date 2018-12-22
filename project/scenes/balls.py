@@ -1,51 +1,36 @@
-import time
-import math
-import os
-
 import sdl2
 import sdl2.ext
-import pymunk
 
-from gamepart import Game, SimpleScene
+from gamepart import SimpleScene
 from gamepart.context import Context
-from gamepart.physics import World, Circle
+from gamepart.physics import pymunk, World, PhysicalCircle
 from gamepart.physics.vector import Vector
+from gamepart.viewport import ViewPort, Circle
 
 
-class TestScene(SimpleScene):
-    def init(self):
-        super(TestScene, self).init()
-        self.key_event.on_up(sdl2.SDLK_COMMA, self.decrease_fps)
-        self.key_event.on_up(sdl2.SDLK_PERIOD, self.increase_fps)
-        self.key_event.on_up(sdl2.SDLK_SPACE, self.switch_to_balls)
-        # time.sleep(1)
+class Ball(Circle, PhysicalCircle):
+    @property
+    def color(self):
+        return 0, 255, 0
 
-    def every_frame(self, renderer: sdl2.ext.Renderer):
-        # if random.random() > 0.9999:
-        #     self.game.queue_scene_switch('my')
-        # d = random.randint(1, 10)**6 / 10**6 / 50.0
-        # time.sleep(d)
-        self.game.renderer.clear((0, 0, 0))
-        x = int((math.sin(time.perf_counter()) + 1) * 150) + 50
-        y = int((math.cos(time.perf_counter()) + 1) * 150) + 50
-        self.game.renderer.fill((x, y, 50, 50), (0, 255, 0))
+    @property
+    def position(self):
+        return self.body.position
 
-    def decrease_fps(self, _=None):
-        self.game.max_fps /= 2
-        self.game.fps_counter.clear()
+    @property
+    def angle(self):
+        return self.body.angle
 
-    def increase_fps(self, _=None):
-        self.game.max_fps *= 2
-        self.game.fps_counter.clear()
-
-    def switch_to_balls(self, _=None):
-        self.game.queue_scene_switch("balls")
+    @property
+    def radius(self):
+        return self.shape.radius
 
 
 class BallScene(SimpleScene):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.world: World = None
+        self.viewport: ViewPort = None
         self.last_click = (0, 0)
 
     def init(self):
@@ -77,6 +62,8 @@ class BallScene(SimpleScene):
             line.friction = 1.0
         self.world.space.add(static_lines)
 
+        self.viewport = ViewPort(self.game.renderer, self.game.width, self.game.height)
+
         self.key_event.on_up(sdl2.SDLK_SPACE, self.switch_to_test)
         self.mouse_event.on_down(sdl2.SDL_BUTTON_LEFT, self.start_drag)
         self.mouse_event.on_up(sdl2.SDL_BUTTON_LEFT, self.end_drag)
@@ -85,8 +72,13 @@ class BallScene(SimpleScene):
     def start(self, context: Context):
         super(BallScene, self).start(context)
         self.world.clear()
-        self.world.add(Circle(30, 20, (100, 100), (100, 100)))
-        self.world.add(Circle(40, 30, (200, 200), (100, 100)))
+        self.viewport.clear()
+        b = Ball(30, 20, (100, 100), (100, 100))
+        self.world.add(b)
+        self.viewport.add(b)
+        b = Ball(40, 30, (200, 200), (100, 100))
+        self.world.add(b)
+        self.viewport.add(b)
 
     def start_drag(self, event: sdl2.SDL_Event):
         self.last_click = (event.button.x, self.game.height - event.button.y)
@@ -94,16 +86,18 @@ class BallScene(SimpleScene):
     def end_drag(self, event: sdl2.SDL_Event):
         p = Vector.to(self.last_click)
         v = Vector.to((event.button.x, self.game.height - event.button.y)) - p
-        self.world.add(Circle(position=p, velocity=v * 4, radius=30, mass=20))
+        b = Ball(position=p, velocity=v * 4, radius=30, mass=20)
+        self.world.add(b)
+        self.viewport.add(b)
 
     def delete_ball(self, event: sdl2.SDL_Event):
         pos = Vector.to((event.button.x, self.game.height - event.button.y))
         rem = None
-        for c in self.world.get_objects(Circle):
+        for c in self.world.get_objects(Ball):
             if (pos - c.position).r <= c.radius:
                 rem = c
         if rem:
-            self.world.remove(rem)
+            self.viewport.remove(*self.world.remove(rem))
 
     def switch_to_test(self, _=None):
         self.game.queue_scene_switch("test")
@@ -113,28 +107,4 @@ class BallScene(SimpleScene):
 
     def every_frame(self, renderer: sdl2.ext.Renderer):
         self.game.renderer.clear((255, 255, 255))
-        circles = [
-            (c.position.x, self.game.height - c.position.y, c.radius)
-            for c in self.world.get_objects(Circle)
-        ]
-        self.game.renderer.filled_circle(circles, (0, 255, 0))
-
-
-class MyGame(Game):
-    def init_font_manager(self):
-        directory = os.path.dirname(os.path.abspath(__file__))
-        self.font_manager = sdl2.ext.FontManager(
-            os.path.join(directory, "resources", "PixelFJVerdana12pt.ttf")
-        )
-
-    def init_scenes(self):
-        self.add_scene("test", TestScene)
-        self.add_scene("balls", BallScene)
-        super(MyGame, self).init_scenes()
-        self.queue_scene_switch("balls")
-
-    def get_config(self):
-        config = super(MyGame, self).get_config()
-        config["max_fps"] = 120
-        # config["fullscreen"] = True
-        return config
+        self.viewport.draw()
