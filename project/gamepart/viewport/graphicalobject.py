@@ -8,29 +8,24 @@ from ..physics.vector import Vector
 
 
 class GraphicalObject(SubSystemObject):
-    @property
-    def position(self) -> typing.Tuple[float, float]:
-        return 0, 0
-
-    @property
-    def angle(self) -> float:
-        return 0
+    position: typing.Tuple[float, float]
+    angle: float
 
     def draw(self, vp: "ViewPort"):
         raise NotImplementedError()
 
 
 class TexturedObject(GraphicalObject):
-    @property
-    def texture(self) -> sdl2.ext.TextureSprite:
-        raise NotImplementedError()
+    texture: sdl2.ext.TextureSprite
 
     def draw(self, vp: "ViewPort"):
         texture = self.texture
         x, y = vp.to_view(self.position)
         w, h = texture.size
         angle = (self.angle / 2 * math.pi) * 360
-        dstrect = sdl2.SDL_Rect(int(x), int(y), int(w * vp.zoom), int(h * vp.zoom))
+        dstrect = sdl2.SDL_Rect(
+            int(x), int(y), int(vp.d_to_view(w)), int(vp.d_to_view(h))
+        )
         ret = sdl2.SDL_RenderCopyEx(
             vp.renderer.sdlrenderer, texture.texture, None, dstrect, angle
         )
@@ -39,9 +34,7 @@ class TexturedObject(GraphicalObject):
 
 
 class GFXObject(GraphicalObject):
-    @property
-    def color(self) -> typing.Tuple[int, int, int]:
-        raise NotImplementedError()
+    color: typing.Union[typing.Tuple[int, int, int], typing.Tuple[int, int, int, int]]
 
 
 class Point(GFXObject):
@@ -50,40 +43,29 @@ class Point(GFXObject):
 
 
 class Line(GFXObject):
-    @property
-    def length(self) -> float:
-        raise NotImplementedError()
+    end_points: typing.Tuple[typing.Tuple[float, float], typing.Tuple[float, float]]
 
     def draw(self, vp: "ViewPort"):
-        dv = Vector.polar(self.length / 2, self.angle)
-        pos = self.position
-        start, end = pos - dv, pos + dv
+        start, end = self.end_points
         sx, sy = vp.to_view(start)
         ex, ey = vp.to_view(end)
         vp.renderer.line([sx, sy, ex, ey], self.color)
 
 
 class Rectangle(GFXObject):
-    @property
-    def width(self) -> float:
-        raise NotImplementedError()
-
-    @property
-    def height(self) -> float:
-        raise NotImplementedError()
+    width: float
+    height: float
 
 
 class Circle(GFXObject):
-    @property
-    def radius(self) -> float:
-        raise NotImplementedError()
+    radius: float
 
     def draw(self, vp: "ViewPort"):
         pos = self.position
-        r = self.radius
+        r = vp.d_to_view(self.radius)
         px, py = vp.to_view(pos)
-        lx, ly = vp.to_view(pos + Vector.polar(r, self.angle))
-        vp.renderer.filled_circle([px, py, r], self.color)
+        lx, ly = tuple((px, py) + Vector.polar(r, self.angle))
+        vp.renderer.filled_circle((px, py, r), self.color)
         vp.renderer.line([px, py, lx, ly], (0, 0, 0))
 
 

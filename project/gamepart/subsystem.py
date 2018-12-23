@@ -5,20 +5,26 @@ class SubSystemObject:
     pass
 
 
-T = typing.TypeVar("T", bound=SubSystemObject)
+T = typing.TypeVar("T", bound=SubSystemObject, contravariant=True)
 ST = typing.TypeVar("ST", bound=SubSystemObject)
 
 
-class SubSystem(typing.Generic[T]):
+class SubSystem(SubSystemObject, typing.Generic[T]):
     def __init__(self):
         self.objects: typing.List[T] = []
 
-    def get_objects(self, *types: typing.Type[ST]) -> typing.Iterable[ST]:
+    @staticmethod
+    def accepts(obj: typing.Any) -> bool:
+        return isinstance(obj, SubSystemObject)
+
+    def get_objects(self, *types: typing.Type[ST]) -> typing.Generator[ST, None, None]:
         for obj in self.objects:
             if isinstance(obj, types):
                 yield obj  # type: ignore
 
     def add(self, *objects: T) -> typing.Iterable[T]:
+        for obj in objects:
+            assert self.accepts(obj)
         self.objects.extend(objects)
         return objects
 
@@ -32,3 +38,35 @@ class SubSystem(typing.Generic[T]):
 
     def __del__(self):
         self.clear()
+
+
+class SystemManager(SubSystem[SubSystem]):
+    @staticmethod
+    def accepts(obj: typing.Any) -> bool:
+        return isinstance(obj, SubSystem)
+
+    def get_objects_all(
+        self, *types: typing.Type[ST]
+    ) -> typing.Generator[ST, None, None]:
+        seen: typing.Set[SubSystemObject] = set()
+        for system in self.objects:
+            for obj in system.get_objects(*types):
+                if obj not in seen:
+                    seen.add(obj)
+                    yield obj
+
+    def add_all(self, *objects: ST) -> typing.Iterable[ST]:
+        for system in self.objects:
+            system.add(*[obj for obj in objects if system.accepts(obj)])
+        return objects
+
+    def remove_all(self, *objects: ST) -> typing.Iterable[ST]:
+        for system in self.objects:
+            system.remove(*[obj for obj in objects if system.accepts(obj)])
+        return objects
+
+    def clear_all(self) -> typing.Iterable[SubSystemObject]:
+        all_objects: typing.Set[SubSystemObject] = set()
+        for system in self.objects:
+            all_objects.update(system.clear())
+        return all_objects

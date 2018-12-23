@@ -5,25 +5,34 @@ from .utils import pymunk
 
 
 class PhysicalObject(SubSystemObject):
-    def __init__(self, body: pymunk.Body, shapes: typing.Iterable[pymunk.Shape]):
+    def __init__(
+        self, body: typing.Optional[pymunk.Body], shapes: typing.Iterable[pymunk.Shape]
+    ):
         self.body = body
-        self.shapes = shapes if isinstance(shapes, list) else list(shapes)
+        self.shapes = list(shapes)
 
     @property
     def position(self) -> pymunk.Vec2d:
-        return self.body.position
+        return self.body.position if self.body else (0, 0)
+
+    @property
+    def bodies(self) -> typing.Iterable[pymunk.Body]:
+        return [self.body] if self.body else []
 
 
-class SimplePhysicalObject(PhysicalObject):
-    def __init__(self, body: pymunk.Body, shape: pymunk.Shape):
+T = typing.TypeVar("T", bound=pymunk.Shape)
+
+
+class SimplePhysicalObject(PhysicalObject, typing.Generic[T]):
+    def __init__(self, body: typing.Optional[pymunk.Body], shape: T):
         super().__init__(body, [shape])
 
     @property
-    def shape(self) -> pymunk.Shape:
+    def shape(self) -> T:
         return self.shapes[0]
 
 
-class PhysicalCircle(SimplePhysicalObject):
+class PhysicalCircle(SimplePhysicalObject[pymunk.Circle]):
     def __init__(
         self, radius: float = 1, mass: float = 1, position=(0, 0), velocity=(0, 0)
     ):

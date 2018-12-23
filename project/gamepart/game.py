@@ -10,6 +10,7 @@ import sdl2.ext
 from .render import GfxRenderer
 from .context import Context
 from .time import FPSCounter
+from .utils import get_mouse_state
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,7 @@ class Game:
 
         self.fps_counter = FPSCounter()
         self.key_state: typing.Dict[int, bool] = sdl2.SDL_GetKeyboardState(None)
+        self.mouse_state: typing.Tuple[int, int, int] = get_mouse_state()
         self.ticks = 0.0
         self.ticks_delta = 0.0
         self.running = False
@@ -112,6 +114,7 @@ class Game:
             self.renderer.copy(text, None, pos)
 
     def frame(self):
+        self.mouse_state = get_mouse_state()
         self.frame_num += 1
         if self.scene_switch_queue:
             self.switch_scene(self.scene_switch_queue.popleft())

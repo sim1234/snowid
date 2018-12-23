@@ -1,6 +1,7 @@
 import sdl2
 import sdl2.ext
 
+from gamepart.subsystem import SystemManager
 from .context import Context
 from .event import EventDispatcher, KeyEventDispatcher, MouseEventDispatcher
 from .render import GfxRenderer
@@ -53,6 +54,14 @@ class SimpleScene(Scene):
 
     def __init__(self, *args, **kwargs):
         super(SimpleScene, self).__init__(*args, **kwargs)
+        self.system: SystemManager = None
+        self.event: EventDispatcher = None
+        self.key_event: KeyEventDispatcher = None
+        self.mouse_event: MouseEventDispatcher = None
+
+    def init(self):
+        super().init()
+        self.system = SystemManager()
         self.event = EventDispatcher()
         self.key_event = KeyEventDispatcher()
         self.mouse_event = MouseEventDispatcher()

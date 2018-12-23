@@ -9,7 +9,7 @@ from gamepart.render import GfxRenderer
 
 class TestScene(SimpleScene):
     def init(self):
-        super(TestScene, self).init()
+        super().init()
         self.key_event.on_up(sdl2.SDLK_COMMA, self.decrease_fps)
         self.key_event.on_up(sdl2.SDLK_PERIOD, self.increase_fps)
         self.key_event.on_up(sdl2.SDLK_SPACE, self.switch_to_balls)
