@@ -6,44 +6,46 @@ import sdl2.ext
 
 
 _t_circle = typing.Tuple[typing.SupportsInt, typing.SupportsInt, typing.SupportsInt]
-_t_circles = typing.Union[_t_circle, typing.List[_t_circle]]
-_t_any = typing.Sequence[typing.SupportsInt]
-_t_anys = typing.Union[_t_any, typing.Sequence[_t_any]]
+_t_circles = typing.Sequence[_t_circle]
+_t_anys = typing.Sequence[typing.Sequence[typing.SupportsInt]]
 
 
 class GfxRenderer(sdl2.ext.Renderer):
-    """Renderer with gfx"""
+    """Renderer with sdl2_gfx support"""
 
     color: sdl2.ext.Color
-    blendmode: int
+
+    def __init__(self, *args, **kwargs):
+        super(GfxRenderer, self).__init__(*args, **kwargs)
+        self._blendmode: int = self.blendmode
+
+    @property
+    def blendmode(self) -> int:
+        """Adds caching blendmode parameter"""
+        self._blendmode = super(GfxRenderer, self).blendmode
+        return self._blendmode
+
+    @blendmode.setter
+    def blendmode(self, value: int):
+        self._blendmode = value
+        super(GfxRenderer, self).blendmode = value
 
     def _shape(
         self,
         shapes: _t_anys,
-        color: sdl2.ext.Color = None,
+        color: sdl2.ext.Color = (0, 0, 0),
         *,
         gfx_fun: typing.Callable = lambda: None,
         map_pos: type = int
     ):
-        """Draws one or multiple shapes on the renderer using gfx_fun."""
-        # ((x, ...), ...)
-        if not shapes:
-            return
-        if not isinstance(shapes[0], typing.Sequence):  # single
-            shapes = [shapes]  # type: ignore
-
-        tmp_color = self.color
-        tmp_blend = self.blendmode
-        if color is None:
-            color = tmp_color
+        """Draws multiple shapes on the renderer using gfx_fun."""
         color = sdl2.ext.convert_to_color(color)
-        if tmp_blend != sdl2.SDL_BLENDMODE_BLEND:  # Hack over sdl2_gfx
+        if self._blendmode != sdl2.SDL_BLENDMODE_BLEND:  # Hack over sdl2_gfx
             color.a = 255
-
         for cords in shapes:
             ret = gfx_fun(
                 self.sdlrenderer,
-                *map(map_pos, cords),  # type: ignore
+                *map(map_pos, cords),
                 color.r,
                 color.g,
                 color.b,
@@ -51,9 +53,6 @@ class GfxRenderer(sdl2.ext.Renderer):
             )
             if ret == -1:
                 raise sdl2.ext.SDLError()
-
-        self.color = tmp_color
-        self.blendmode = tmp_blend
 
     def circle(self, circles: _t_circles, color=None):
         return self._shape(circles, color, gfx_fun=sdl2.sdlgfx.circleRGBA)

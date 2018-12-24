@@ -17,24 +17,23 @@ class GraphicalObject(SubSystemObject):
 
 class TexturedObject(GraphicalObject):
     texture: sdl2.ext.TextureSprite
+    scale: float = 1.0
 
     def draw(self, vp: "ViewPort"):
         texture = self.texture
-        x, y = vp.to_view(self.position)
         w, h = texture.size
-        angle = (self.angle / 2 * math.pi) * 360
-        dstrect = sdl2.SDL_Rect(
-            int(x), int(y), int(vp.d_to_view(w)), int(vp.d_to_view(h))
-        )
-        ret = sdl2.SDL_RenderCopyEx(
-            vp.renderer.sdlrenderer, texture.texture, None, dstrect, angle
-        )
-        if ret == -1:
-            raise sdl2.ext.SDLError()
+        w, h = vp.d_to_view(w) * self.scale, vp.d_to_view(h) * self.scale
+        x, y = vp.to_view(self.position)
+        x, y = x - w/2, y - h/2
+        angle = (self.angle / (2 * math.pi)) * 360 + texture.angle
+        dst = (int(x), int(y), int(w), int(h))
+        vp.renderer.copy(texture.texture, None, dst, angle, None, texture.flip)
 
 
 class GFXObject(GraphicalObject):
-    color: typing.Union[typing.Tuple[int, int, int], typing.Tuple[int, int, int, int]]
+    color: typing.Union[
+        typing.Tuple[int, int, int], typing.Tuple[int, int, int, int], sdl2.ext.Color
+    ]
 
 
 class Point(GFXObject):
@@ -49,7 +48,7 @@ class Line(GFXObject):
         start, end = self.end_points
         sx, sy = vp.to_view(start)
         ex, ey = vp.to_view(end)
-        vp.renderer.line([sx, sy, ex, ey], self.color)
+        vp.renderer.line([(sx, sy, ex, ey)], self.color)
 
 
 class Rectangle(GFXObject):
@@ -61,12 +60,11 @@ class Circle(GFXObject):
     radius: float
 
     def draw(self, vp: "ViewPort"):
-        pos = self.position
         r = vp.d_to_view(self.radius)
-        px, py = vp.to_view(pos)
+        px, py = vp.to_view(self.position)
         lx, ly = tuple((px, py) + Vector.polar(r, self.angle))
-        vp.renderer.filled_circle((px, py, r), self.color)
-        vp.renderer.line([px, py, lx, ly], (0, 0, 0))
+        vp.renderer.filled_circle([(px, py, r)], self.color)
+        vp.renderer.line([(px, py, lx, ly)], sdl2.ext.Color(0, 0, 0))
 
 
 from .viewport import ViewPort  # noqa

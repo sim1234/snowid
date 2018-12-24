@@ -1,8 +1,11 @@
+import functools
 import logging
 import sys
 import io
 
 # suppress pymunk import info
+import typing
+
 import pymunkoptions
 
 pymunkoptions.options["debug"] = False
@@ -26,3 +29,12 @@ def update_shape(shape: pymunk.Shape, **kwargs) -> pymunk.Shape:
     for key, value in kwargs:
         setattr(shape, key, value)
     return shape
+
+
+def typed_property(rtype: type) -> typing.Callable:
+    @functools.wraps(property)
+    def prop(*args, **kwargs):
+        return property(*args, **kwargs)
+
+    prop.__annotations__["return"] = rtype
+    return prop

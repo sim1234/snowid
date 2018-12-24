@@ -1,7 +1,7 @@
 import typing
 
 from ..subsystem import SubSystemObject
-from .utils import pymunk
+from .utils import pymunk, typed_property
 
 
 class PhysicalObject(SubSystemObject):
@@ -11,8 +11,8 @@ class PhysicalObject(SubSystemObject):
         self.body = body
         self.shapes = list(shapes)
 
-    @property
-    def position(self) -> pymunk.Vec2d:
+    @typed_property(typing.Tuple[float, float])
+    def position(self) -> typing.Tuple[float, float]:
         return self.body.position if self.body else (0, 0)
 
     @property
@@ -44,6 +44,6 @@ class PhysicalCircle(SimplePhysicalObject[pymunk.Circle]):
         shape.friction = 0.01
         super().__init__(body, shape)
 
-    @property
-    def radius(self):
+    @typed_property(float)
+    def radius(self) -> float:
         return self.shape.radius
