@@ -25,18 +25,22 @@ class Scene:
         """Start displaying Scene"""
         self.context = context
 
-    def frame(self):
-        """Generate frame"""
-
     def tick(self, delta: float):
         """Move forward in time"""
+
+    def event(self, event: sdl2.SDL_Event):
+        """Handle event"""
+
+    def frame(self):
+        """Generate frame"""
 
     def stop(self) -> Context:
         """Stop displaying Scene"""
         return self.context
 
-    def event(self, event: sdl2.SDL_Event):
-        """Handle event"""
+    def uninit(self):
+        """Uninitialize Scene"""
+        self.context: Context = Context(None)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.game!r}, {self.name!r})"
@@ -76,12 +80,19 @@ class SimpleScene(Scene):
         return super(SimpleScene, self).start(context)
 
     def frame(self):
+        self.system.remove_queued_all()
         if self.is_first_frame:
             self.first_frame(self.game.renderer)
             self.is_first_frame = False
-        if self.game.ticks_delta:
-            self.tick(self.game.ticks_delta)
         return self.every_frame(self.game.renderer)
+
+    def uninit(self):
+        self.event.clear()
+        self.key_event.clear()
+        self.mouse_event.clear()
+        self.system.clear_all()
+        self.system.clear()
+        super().uninit()
 
     def on_exit(self, _: sdl2.SDL_Event):
         """Handle exit event"""

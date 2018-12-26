@@ -9,7 +9,7 @@ import sdl2.ext
 
 from .render import GfxRenderer
 from .context import Context
-from .time import FPSCounter
+from .time import FPSCounter, TimeFeeder
 from .utils import get_mouse_state
 
 logger = logging.getLogger(__name__)
@@ -28,6 +28,9 @@ class Game:
         self.max_fps = self.config["max_fps"]
         self.caption = self.config["caption"]
         self.fullscreen = self.config["fullscreen"]
+        self.time_step = self.config["time_step"]
+        self.time_speed = self.config["time_speed"]
+        self.time_max_iter = self.config["time_max_iter"]
 
         self.window: sdl2.ext.Window = None
         self.renderer: GfxRenderer = None
@@ -41,10 +44,9 @@ class Game:
         self.show_loading_screen()
 
         self.fps_counter = FPSCounter()
+        self.feeder = TimeFeeder(self.time_step, self.time_speed)
         self.key_state: typing.Dict[int, bool] = sdl2.SDL_GetKeyboardState(None)
         self.mouse_state: typing.Tuple[int, int, int] = get_mouse_state()
-        self.ticks = 0.0
-        self.ticks_delta = 0.0
         self.running = False
         self.scenes: typing.Dict[str, "Scene"] = {}
         self.scene_switch_queue = collections.deque()
@@ -53,7 +55,7 @@ class Game:
         self.logger.debug("Initializing scenes")
         self.init_scenes()
         self.fps_counter.clear()
-        self.ticks = time.monotonic()
+        self.time_time = time.monotonic()
         self.logger.info("All systems nominal")
 
     @property
@@ -104,7 +106,7 @@ class Game:
 
     def show_fps(self):
         fps = int(self.fps_counter.get_fps())
-        logger.debug(f"FPS={fps} ticks_delta={self.ticks_delta}")
+        logger.debug(f"FPS={fps}")
         if self.font_manager:
             text = self.font_manager.render(
                 f"{fps}", size=8, color=(200, 200, 50), bg_color=(10, 10, 10)
@@ -130,9 +132,10 @@ class Game:
         self.renderer.present()
 
     def tick(self):
-        new_ticks = time.monotonic()
-        self.ticks_delta = new_ticks - self.ticks
-        self.ticks = new_ticks
+        new_time = time.monotonic()
+        for delta in self.feeder.tick(new_time - self.time_time, self.time_max_iter):
+            self.active_scene.tick(delta)
+        self.time_time = new_time
 
     def add_scene(self, name: str, scene: typing.Type["Scene"], *args, **kwargs):
         logger.debug(f"Adding scene {scene.__name__}(name={name!r})")
@@ -156,6 +159,8 @@ class Game:
 
     def stop(self):
         logger.debug("Stopping")
+        for scene in self.scenes.values():
+            scene.uninit()
         sdl2.ext.quit()
 
     def main_loop(self):
@@ -180,8 +185,11 @@ class Game:
             "width": 640,
             "height": 480,
             "caption": self.__class__.__name__,
-            "max_fps": 120,
+            "max_fps": 128,
             "fullscreen": False,
+            "time_step": 1 / 128,
+            "time_speed": 1.0,
+            "time_max_iter": 10,
         }
 
     def get_initial_context(self) -> "Context":
@@ -189,6 +197,10 @@ class Game:
 
     def add_exit_scene(self) -> "Scene":
         return self.add_scene("exit", ExitScene)
+
+    @property
+    def world_time(self):
+        return self.feeder.world_time
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.caption!r})"

@@ -54,14 +54,16 @@ class TimeFeeder:
         self.system_time = 0.0
         self.world_time = 0.0
 
-    def tick(self, delta: float, max_iter: int = 0):
+    def tick(
+        self, delta: float, max_iter: int = 0
+    ) -> typing.Generator[float, None, None]:
         self.system_time += delta * self.speed
         x = 0
         while self.world_time < self.system_time:
             self.world_time += self.time_step
             yield self.time_step
             x += 1
-            if max_iter and x >= max_iter:
+            if max_iter and x > max_iter:
                 logger.warning(
                     "World time is lagging by %d steps", self.lag // self.time_step
                 )

@@ -3,7 +3,7 @@ import typing
 import sdl2
 import sdl2.sdlgfx
 import sdl2.ext
-
+from sdl2 import Sint16
 
 _t_circle = typing.Tuple[typing.SupportsInt, typing.SupportsInt, typing.SupportsInt]
 _t_circles = typing.Sequence[_t_circle]
@@ -16,19 +16,19 @@ class GfxRenderer(sdl2.ext.Renderer):
     color: sdl2.ext.Color
 
     def __init__(self, *args, **kwargs):
-        super(GfxRenderer, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._blendmode: int = self.blendmode
 
     @property
     def blendmode(self) -> int:
         """Adds caching blendmode parameter"""
-        self._blendmode = super(GfxRenderer, self).blendmode
+        self._blendmode = super().blendmode
         return self._blendmode
 
     @blendmode.setter
     def blendmode(self, value: int):
         self._blendmode = value
-        super(GfxRenderer, self).blendmode = value
+        super(GfxRenderer, self.__class__).blendmode.fset(self, value)
 
     def _shape(
         self,
@@ -36,7 +36,7 @@ class GfxRenderer(sdl2.ext.Renderer):
         color: sdl2.ext.Color = (0, 0, 0),
         *,
         gfx_fun: typing.Callable = lambda: None,
-        map_pos: type = int
+        map_pos: typing.Callable = int
     ):
         """Draws multiple shapes on the renderer using gfx_fun."""
         color = sdl2.ext.convert_to_color(color)
@@ -108,13 +108,35 @@ class GfxRenderer(sdl2.ext.Renderer):
     def filled_trigon(self, trigons, color=None):
         return self._shape(trigons, color, gfx_fun=sdl2.sdlgfx.filledTrigonRGBA)
 
+    def _polygon(self, polygons, color=None, *, gfx_fun=lambda: None):
+        """[[(p1x, p1y), (p2y, p2y), ...], ...]"""
+        polys = []
+        for points in polygons:
+            num = len(points)
+            vx = (Sint16 * num)(*[int(p[0]) for p in points])
+            vy = (Sint16 * num)(*[int(p[1]) for p in points])
+            polys.append((vx, vy, num))
+        return self._shape(polys, color, gfx_fun=gfx_fun, map_pos=lambda x: x)
+
     def polygon(self, polygons, color=None):
-        return self._shape(polygons, color, gfx_fun=sdl2.sdlgfx.polygonRGBA)
+        return self._polygon(polygons, color, gfx_fun=sdl2.sdlgfx.polygonRGBA)
 
     def aa_polygon(self, polygons, color=None):
-        return self._shape(polygons, color, gfx_fun=sdl2.sdlgfx.aapolygonRGBA)
+        return self._polygon(polygons, color, gfx_fun=sdl2.sdlgfx.aapolygonRGBA)
 
     def filled_polygon(self, polygons, color=None):
-        return self._shape(polygons, color, gfx_fun=sdl2.sdlgfx.filledPolygonRGBA)
+        return self._polygon(polygons, color, gfx_fun=sdl2.sdlgfx.filledPolygonRGBA)
 
-    # TODO: len(cords), texturedPolygon, bezierRGBA
+    def bezier(self, beziers, color=None):
+        """[(s, [(p1x, p1y), (p2y, p2y), ...]), ...]"""
+        curves = []
+        for s, points in beziers:
+            num = len(points)
+            vx = (Sint16 * num)(*[int(p[0]) for p in points])
+            vy = (Sint16 * num)(*[int(p[1]) for p in points])
+            curves.append((vx, vy, num, s))
+        return self._shape(
+            curves, color, gfx_fun=sdl2.sdlgfx.bezierRGBA, map_pos=lambda x: x
+        )
+
+    # TODO: texturedPolygon

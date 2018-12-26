@@ -65,6 +65,9 @@ class Dispatcher(typing.Generic[T, TD]):
             if ret:  # Stop event propagation
                 return ret
 
+    def clear(self):
+        self.callbacks.clear()
+
 
 class EventDispatcher(Dispatcher[int, sdl2.SDL_Event]):
     """Dispatcher for SDL_Events"""

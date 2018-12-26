@@ -5,6 +5,6 @@ from .graphicalobject import (  # noqa: F401
     GFXObject,
     Point,
     Line,
-    Rectangle,
+    Polygon,
     Circle,
 )

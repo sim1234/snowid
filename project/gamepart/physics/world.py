@@ -1,16 +1,16 @@
 import typing
 
 from ..subsystem import SubSystem
-from ..time import TimeFeeder
 from .utils import pymunk
-from .physicalobject import PhysicalObject
+from .physicalobject import PhysicalObject, CollisionObject, AwareObject
 
 
 class World(SubSystem[PhysicalObject]):
-    def __init__(self, time_step: float = 1 / 2 ** 8, speed: float = 1.0):
+    def __init__(self, speed: float = 1.0):
         super(World, self).__init__()
-        self.feeder = TimeFeeder(time_step, speed)
+        self.speed = speed
         self.space = pymunk.Space()
+        self.shape_map: typing.Dict[pymunk.Shape, PhysicalObject] = {}
 
     @staticmethod
     def accepts(obj: typing.Any) -> bool:
@@ -20,16 +20,25 @@ class World(SubSystem[PhysicalObject]):
         super().add(*objects)
         for obj in objects:
             self.space.add(*obj.bodies, *obj.shapes)
+            for shape in obj.shapes:
+                self.shape_map[shape] = obj
         return objects
 
     def remove(self, *objects: PhysicalObject) -> typing.Iterable[PhysicalObject]:
         for obj in objects:
             self.space.remove(*obj.bodies, *obj.shapes)
+            for shape in obj.shapes:
+                del self.shape_map[shape]
         return super().remove(*objects)
 
-    def tick(self, delta: float, max_iter: int = 10):
-        for delta in self.feeder.tick(delta, max_iter):
-            self.space.step(delta)
+    def _collide(self, arbiter: pymunk.Arbiter, obj: CollisionObject):
+        other = self.shape_map[arbiter.shapes[1]]
+        return obj.collide(arbiter, other)
 
-    def catch_up(self):
-        return self.feeder.catch_up()
+    def tick(self, delta: float):
+        self.space.step(delta * self.speed)
+        for a_obj in self.get_objects(AwareObject):
+            a_obj.tick(delta)
+        for c_obj in self.get_objects(CollisionObject):
+            for body in c_obj.bodies:
+                body.each_arbiter(self._collide, c_obj)

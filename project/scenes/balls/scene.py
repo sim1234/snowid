@@ -6,8 +6,10 @@ from gamepart.context import Context
 from gamepart.physics import World
 from gamepart.physics.vector import Vector
 from gamepart.viewport import ViewPort, FlippedViewPort
+
 from .line import BoundLine
 from .ball import Ball, TexturedBall
+from .player import Player, PlayerController
 
 
 class BallScene(SimpleScene):
@@ -18,10 +20,12 @@ class BallScene(SimpleScene):
         self.world: World = None
         self.viewport: ViewPort = None
         self.last_click = (0, 0)
+        self.player: Player = None
+        self.player_ctrl: PlayerController = None
 
     def init(self):
         super().init()
-        self.world = World(1 / 2 ** 8, 1.0)
+        self.world = World()
         self.world.space.gravity = (0, -1000)
         self.system.add(self.world)
         # self.viewport = ViewPort(
@@ -34,19 +38,25 @@ class BallScene(SimpleScene):
         self.system.add(self.viewport)
 
         self.key_event.on_up(sdl2.SDLK_SPACE, self.switch_to_test)
+        self.key_event.on_down(sdl2.SDLK_w, self.player_jump)
         self.mouse_event.on_down(sdl2.SDL_BUTTON_LEFT, self.start_drag)
         self.mouse_event.on_up(sdl2.SDL_BUTTON_LEFT, self.end_drag)
         self.mouse_event.on_up(sdl2.SDL_BUTTON_RIGHT, self.delete_ball)
         self.event.on(sdl2.SDL_MOUSEWHEEL, self.change_zoom)
 
+        self.player = Player(position=(200, 300))
+        self.player_ctrl = PlayerController(self.player)
+        self.key_event.on_down(sdl2.SDLK_e, self.player_ctrl.setter("shoot", True))
+
     def start(self, context: Context):
         super(BallScene, self).start(context)
-        tex = self.game.sprite_factory.from_image('resources/cube.png')
+        tex = self.game.sprite_factory.from_image("resources/cube.png")
         self.system.clear_all()
         self.system.add_all(
             Ball(30, 20, (100, 100), (100, 100)),
             Ball(40, 30, (200, 200), (100, 100)),
-            TexturedBall(40, 30, (300, 300), (0, 0), texture=tex, scale=0.75)
+            TexturedBall(40, 30, (300, 300), (0, 0), texture=tex, scale=0.75),
+            self.player,
         )
         self.system.add_all(
             *BoundLine.make_box(
@@ -88,7 +98,15 @@ class BallScene(SimpleScene):
     def switch_to_test(self, _=None):
         self.game.queue_scene_switch("test")
 
+    def player_jump(self, event: sdl2.SDL_Event):
+        if not event.key.repeat:
+            self.player_ctrl.input.jump = True
+
     def tick(self, delta: float):
+        self.player_ctrl.input.left = bool(self.game.key_state[sdl2.SDL_SCANCODE_A])
+        self.player_ctrl.input.right = bool(self.game.key_state[sdl2.SDL_SCANCODE_D])
+        self.player_ctrl.input.shoot = bool(self.game.key_state[sdl2.SDL_SCANCODE_E])
+        self.player_ctrl.control(self.game.world_time, delta)
         self.world.tick(delta)
 
     def every_frame(self, renderer: sdl2.ext.Renderer):

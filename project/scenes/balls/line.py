@@ -5,6 +5,8 @@ import sdl2.ext
 from gamepart.physics import pymunk, SimplePhysicalObject
 from gamepart.viewport import Line
 
+from .category import cat_terrain, cat_terrain_collide
+
 
 class BoundLine(Line, SimplePhysicalObject[pymunk.Segment]):
     color = sdl2.ext.Color(255, 0, 0)
@@ -13,9 +15,10 @@ class BoundLine(Line, SimplePhysicalObject[pymunk.Segment]):
         self, static_body: pymunk.Body, p1x: float, p1y: float, p2x: float, p2y: float
     ):
         shape = pymunk.Segment(static_body, (p1x, p1y), (p2x, p2y), 0.0)
+        shape.filter = cat_terrain.filter(cat_terrain_collide)
         shape.elasticity = 1.0
         shape.friction = 1.0
-        super().__init__(None, shape)
+        super().__init__(None, shape, cat_terrain)
 
     @property
     def end_points(self):

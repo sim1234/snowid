@@ -15,6 +15,19 @@ class GraphicalObject(SubSystemObject):
         raise NotImplementedError()
 
 
+class ComplexGraphicalObject(GraphicalObject):
+    position = (0, 0)
+    angle = 0
+
+    def __init__(self, objects: typing.Iterable[GraphicalObject] = ()):
+        super().__init__()
+        self.objects = list(objects)
+
+    def draw(self, vp: "ViewPort"):
+        for obj in self.objects:
+            obj.draw(vp)
+
+
 class TexturedObject(GraphicalObject):
     texture: sdl2.ext.TextureSprite
     scale: float = 1.0
@@ -24,7 +37,7 @@ class TexturedObject(GraphicalObject):
         w, h = texture.size
         w, h = vp.d_to_view(w) * self.scale, vp.d_to_view(h) * self.scale
         x, y = vp.to_view(self.position)
-        x, y = x - w/2, y - h/2
+        x, y = x - w / 2, y - h / 2
         angle = (self.angle / (2 * math.pi)) * 360 + texture.angle
         dst = (int(x), int(y), int(w), int(h))
         vp.renderer.copy(texture.texture, None, dst, angle, None, texture.flip)
@@ -51,9 +64,12 @@ class Line(GFXObject):
         vp.renderer.line([(sx, sy, ex, ey)], self.color)
 
 
-class Rectangle(GFXObject):
-    width: float
-    height: float
+class Polygon(GFXObject):
+    points: typing.Iterable[typing.Tuple[float, float]]
+
+    def draw(self, vp: "ViewPort"):
+        points = [vp.to_view(p) for p in self.points]
+        vp.renderer.filled_polygon([points], self.color)
 
 
 class Circle(GFXObject):

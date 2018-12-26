@@ -2,7 +2,14 @@ import typing
 
 
 class SubSystemObject:
-    pass
+    def __init__(self):
+        self._not_removed: bool = True
+
+    def remove(self):
+        self._not_removed = False
+
+    def __bool__(self) -> bool:
+        return self._not_removed
 
 
 T = typing.TypeVar("T", bound=SubSystemObject, contravariant=True)
@@ -11,6 +18,7 @@ ST = typing.TypeVar("ST", bound=SubSystemObject)
 
 class SubSystem(SubSystemObject, typing.Generic[T]):
     def __init__(self):
+        super().__init__()
         self.objects: typing.List[T] = []
 
     @staticmethod
@@ -32,6 +40,9 @@ class SubSystem(SubSystemObject, typing.Generic[T]):
         for obj in objects:
             self.objects.remove(obj)
         return objects
+
+    def remove_queued(self) -> typing.Iterable[T]:
+        return self.remove(*[obj for obj in self.objects if not obj])
 
     def clear(self) -> typing.Iterable[T]:
         return self.remove(*self.objects)
@@ -64,6 +75,12 @@ class SystemManager(SubSystem[SubSystem]):
         for system in self.objects:
             system.remove(*[obj for obj in objects if system.accepts(obj)])
         return objects
+
+    def remove_queued_all(self) -> typing.Iterable[SubSystemObject]:
+        all_objects: typing.Set[SubSystemObject] = set()
+        for system in self.objects:
+            all_objects.update(system.remove_queued())
+        return all_objects
 
     def clear_all(self) -> typing.Iterable[SubSystemObject]:
         all_objects: typing.Set[SubSystemObject] = set()
