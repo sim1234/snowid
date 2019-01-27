@@ -28,7 +28,6 @@ def render_font(
         bg_color = sdl2.SDL_Color(0, 0, 0)
 
     if bg_color == sdl2.SDL_Color(0, 0, 0):
-        print(font, text_b, color)
         sf = sdl2.sdlttf.TTF_RenderUTF8_Blended(font, text_b, color)
     else:
         sf = sdl2.sdlttf.TTF_RenderUTF8_Shaded(font, text_b, color, bg_color)
