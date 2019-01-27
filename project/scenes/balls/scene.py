@@ -49,7 +49,7 @@ class BallScene(SimpleScene):
         self.key_event.on_down(sdl2.SDLK_e, self.player_ctrl.setter("shoot", True))
 
     def start(self, context: Context):
-        super(BallScene, self).start(context)
+        super().start(context)
         tex = self.game.sprite_factory.from_image("resources/cube.png")
         self.system.clear_all()
         self.system.add_all(

@@ -1,37 +1,10 @@
 import typing
 
+from .protocol import Protocol
 
-class Input:
-    __slots__: typing.Tuple[str, ...]
-    default: typing.Any = None
 
-    def __init__(self, data: typing.Sequence = ()):
-        self.update(data)
-
-    def update(self, data: typing.Sequence):
-        default = self.default
-        for i, k in enumerate(self.__slots__):
-            try:
-                setattr(self, k, data[i])
-            except IndexError:
-                setattr(self, k, default)
-
-    def clear(self):
-        default = self.default
-        for k in self.__slots__:
-            setattr(self, k, default)
-
-    def serialize(self) -> typing.Sequence:
-        default = self.default
-        return [getattr(self, k, default) for k in self.__slots__]
-
-    def copy(self, control: "Input"):
-        default = self.default
-        for k in self.__slots__:
-            setattr(self, k, getattr(control, k, default))
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}({self.serialize()!r})"
+class Input(Protocol):
+    pass
 
 
 T = typing.TypeVar("T", bound=Input)

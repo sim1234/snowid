@@ -7,7 +7,7 @@ from .physicalobject import PhysicalObject, CollisionObject, AwareObject
 
 class World(SubSystem[PhysicalObject]):
     def __init__(self, speed: float = 1.0):
-        super(World, self).__init__()
+        super().__init__()
         self.speed = speed
         self.space = pymunk.Space()
         self.shape_map: typing.Dict[pymunk.Shape, PhysicalObject] = {}

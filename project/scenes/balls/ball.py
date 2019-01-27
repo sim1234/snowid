@@ -34,7 +34,7 @@ class TexturedBall(Ball, TexturedObject):
     def __init__(
         self, *args, texture: sdl2.ext.TextureSprite, scale: float = 1.0, **kwargs
     ):
-        super(TexturedBall, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.texture = texture
         self.scale = scale
 

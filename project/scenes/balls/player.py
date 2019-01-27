@@ -5,23 +5,22 @@ import sdl2.ext
 from gamepart.physics import pymunk, PhysicalObject, CollisionObject, AwareObject
 from gamepart.viewport import Polygon
 from gamepart.control import Input, Controller
-
+from gamepart.protocol import Protocol
 from .category import cat_player, cat_player_collide, cat_terrain
 
 
-class PlayerState:
-    def __init__(self):
-        # Dynamic
-        self.position: typing.Tuple[float, float] = (0.0, 0.0)
-        # State
-        self.jumps: int = 0
-        self.last_shoot: float = 0.0
-        # Stats
-        self.mass: float = 200.0
-        self.air_acceleration: float = 300.0
-        self.jump_speed: float = 1000.0
-        self.ground_speed: float = 300.0
-        self.max_jumps: int = 2
+class PlayerState(Protocol):
+    # Dynamic
+    position: typing.Tuple[float, float] = (0.0, 0.0)
+    # State
+    jumps: int = 0
+    last_shoot: float = 0.0
+    # Stats
+    mass: float = 200.0
+    air_acceleration: float = 300.0
+    jump_speed: float = 1000.0
+    ground_speed: float = 300.0
+    max_jumps: int = 2
 
 
 class Player(Polygon, CollisionObject, AwareObject):
@@ -59,12 +58,10 @@ class Player(Polygon, CollisionObject, AwareObject):
 
 
 class PlayerInput(Input):
-    __slots__ = ("left", "right", "jump", "shoot")
-    default = False
-    left: bool
-    right: bool
-    jump: bool
-    shoot: bool
+    left: bool = False
+    right: bool = False
+    jump: bool = False
+    shoot: bool = False
 
 
 class PlayerController(Controller[PlayerInput, Player]):

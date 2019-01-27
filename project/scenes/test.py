@@ -1,15 +1,29 @@
 import time
 import math
 
-import sdl2
+import sdl2.ext
 
 from gamepart import SimpleScene
 from gamepart.render import GfxRenderer
+from gamepart.gui import GUISystem, Console
 
 
 class TestScene(SimpleScene):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.gui: GUISystem = None
+
     def init(self):
         super().init()
+        self.gui = GUISystem(
+            self.game.renderer,
+            self.game.font_manager,
+            self.game.sprite_factory,
+            self.game.width,
+            self.game.height,
+        )
+        self.gui.add(Console())
+        self.system.add(self.gui)
         self.key_event.on_up(sdl2.SDLK_COMMA, self.decrease_fps)
         self.key_event.on_up(sdl2.SDLK_PERIOD, self.increase_fps)
         self.key_event.on_up(sdl2.SDLK_SPACE, self.switch_to_balls)

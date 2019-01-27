@@ -57,7 +57,7 @@ class SimpleScene(Scene):
     """Scene with some utility functions"""
 
     def __init__(self, *args, **kwargs):
-        super(SimpleScene, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.system: SystemManager = None
         self.event: EventDispatcher = None
         self.key_event: KeyEventDispatcher = None
@@ -77,7 +77,7 @@ class SimpleScene(Scene):
 
     def start(self, context: Context):
         self.is_first_frame = True
-        return super(SimpleScene, self).start(context)
+        return super().start(context)
 
     def frame(self):
         self.system.remove_queued_all()

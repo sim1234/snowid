@@ -8,7 +8,7 @@ from gamepart import Game
 
 class MyGame(Game):
     def get_config(self):
-        config = super(MyGame, self).get_config()
+        config = super().get_config()
         config["max_fps"] = 120
         # config["fullscreen"] = True
         return config
@@ -24,5 +24,5 @@ class MyGame(Game):
 
         self.add_scene("test", scenes.TestScene)
         self.add_scene("balls", scenes.BallScene)
-        super(MyGame, self).init_scenes()
+        super().init_scenes()
         self.queue_scene_switch("balls")
