@@ -19,6 +19,15 @@ class GUISystem(SubSystem["GUIObject"]):
         self.sprite_factory = sprite_factory
         self.width = width
         self.height = height
+        self.focused_object: GUIObject = None
+
+    def draw(self):
+        for obj in self.objects:
+            obj.draw(self)
+
+    def event(self, event: sdl2.SDL_Event):
+        for obj in self.objects:
+            obj.event(event)
 
 
 from .guiobject import GUIObject  # noqa

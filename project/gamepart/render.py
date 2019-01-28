@@ -14,21 +14,7 @@ class GfxRenderer(sdl2.ext.Renderer):
     """Renderer with sdl2_gfx support"""
 
     color: sdl2.ext.Color
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._blendmode: int = self.blendmode
-
-    @property
-    def blendmode(self) -> int:
-        """Adds caching blendmode parameter"""
-        self._blendmode = super().blendmode
-        return self._blendmode
-
-    @blendmode.setter
-    def blendmode(self, value: int):
-        self._blendmode = value
-        super(GfxRenderer, self.__class__).blendmode.fset(self, value)
+    blendmode: int
 
     def _shape(
         self,
@@ -40,8 +26,7 @@ class GfxRenderer(sdl2.ext.Renderer):
     ):
         """Draws multiple shapes on the renderer using gfx_fun."""
         color = sdl2.ext.convert_to_color(color)
-        if self._blendmode != sdl2.SDL_BLENDMODE_BLEND:  # Hack over sdl2_gfx
-            color.a = 255
+        blendmode = self.blendmode
         for cords in shapes:
             ret = gfx_fun(
                 self.sdlrenderer,
@@ -53,6 +38,7 @@ class GfxRenderer(sdl2.ext.Renderer):
             )
             if ret == -1:
                 raise sdl2.ext.SDLError()
+            self.blendmode = blendmode
 
     def circle(self, circles: _t_circles, color=None):
         return self._shape(circles, color, gfx_fun=sdl2.sdlgfx.circleRGBA)

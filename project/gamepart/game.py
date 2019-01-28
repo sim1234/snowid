@@ -3,6 +3,7 @@ import logging
 import typing
 import time
 import sys
+import gc
 
 import sdl2
 import sdl2.ext
@@ -42,6 +43,7 @@ class Game:
         self.init_sprite_factory()
         self.init_font_manager()
         self.show_loading_screen()
+        self.init_heavy()
 
         self.fps_counter = FPSCounter()
         self.feeder = TimeFeeder(self.time_step, self.time_speed)
@@ -57,6 +59,7 @@ class Game:
         self.fps_counter.clear()
         self.time_time = time.monotonic()
         self.logger.info("All systems nominal")
+        gc.collect()
 
     @property
     def logger(self) -> logging.Logger:
@@ -78,6 +81,7 @@ class Game:
     def init_renderer(self):
         self.logger.debug("Initializing renderer")
         self.renderer = GfxRenderer(self.window)
+        self.renderer.blendmode = sdl2.SDL_BLENDMODE_BLEND
 
     def init_sprite_factory(self):
         self.logger.debug("Initializing sprite factory")
@@ -189,7 +193,7 @@ class Game:
             "fullscreen": False,
             "time_step": 1 / 128,
             "time_speed": 1.0,
-            "time_max_iter": 10,
+            "time_max_iter": 8,
         }
 
     def get_initial_context(self) -> "Context":
@@ -204,6 +208,9 @@ class Game:
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.caption!r})"
+
+    def init_heavy(self):
+        """Initialize some heavy machinery"""
 
 
 from .scene import Scene, ExitScene  # noqa

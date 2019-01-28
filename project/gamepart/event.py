@@ -1,6 +1,7 @@
 import logging
 import ctypes
 import typing
+import itertools
 
 import sdl2
 import sdl2.ext
@@ -48,11 +49,15 @@ class Dispatcher(typing.Generic[T, TD]):
 
     def __init__(self):
         self.callbacks: typing.Dict[T, typing.List[typing.Callable]] = {}
+        self.chained: typing.List[typing.Callable] = []
 
     def on(self, key: T, callback: typing.Callable):
         if key not in self.callbacks:
             self.callbacks[key] = []
         self.callbacks[key].append(callback)
+
+    def chain(self, callback: typing.Callable):
+        self.chained.append(callback)
 
     @staticmethod
     def get_key(data: TD) -> T:
@@ -60,13 +65,14 @@ class Dispatcher(typing.Generic[T, TD]):
 
     def __call__(self, data: TD, *args, **kwargs):
         key = self.get_key(data)
-        for callback in self.callbacks.get(key, []):
+        for callback in itertools.chain(self.callbacks.get(key, []), self.chained):
             ret = callback(data, *args, **kwargs)
             if ret:  # Stop event propagation
                 return ret
 
     def clear(self):
         self.callbacks.clear()
+        self.chained.clear()
 
 
 class EventDispatcher(Dispatcher[int, sdl2.SDL_Event]):

@@ -5,6 +5,8 @@ from ..render import GfxRenderer
 
 
 class ViewPort(SubSystem["GraphicalObject"]):
+    __slots__ = ("renderer", "width", "height", "zoom", "x", "y")
+
     def __init__(
         self,
         renderer: GfxRenderer,
@@ -37,7 +39,7 @@ class ViewPort(SubSystem["GraphicalObject"]):
         return (y - self.y) * self.zoom
 
     def to_view(self, pos: typing.Tuple[float, float]) -> typing.Tuple[float, float]:
-        return self.x_to_view(pos[0]), self.y_to_view(pos[1])
+        return self.x_to_view(pos[0]), self.y_to_view(pos[1])  # TODO: inline?
 
     def d_to_view(self, d: float) -> float:
         return d * self.zoom
@@ -49,7 +51,7 @@ class ViewPort(SubSystem["GraphicalObject"]):
         return (y / self.zoom) + self.y
 
     def to_world(self, pos: typing.Tuple[float, float]) -> typing.Tuple[float, float]:
-        return self.x_to_world(pos[0]), self.y_to_world(pos[1])
+        return self.x_to_world(pos[0]), self.y_to_world(pos[1])  # TODO: inline?
 
     def d_to_world(self, d: float) -> float:
         return d / self.zoom

@@ -19,7 +19,7 @@ ST = typing.TypeVar("ST", bound=SubSystemObject)
 class SubSystem(SubSystemObject, typing.Generic[T]):
     def __init__(self):
         super().__init__()
-        self.objects: typing.List[T] = []
+        self.objects: typing.List[T] = []  # TODO: Pre-split object types
 
     @staticmethod
     def accepts(obj: typing.Any) -> bool:

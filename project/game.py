@@ -6,6 +6,10 @@ import sdl2.ext
 from gamepart import Game
 
 
+ROOT = os.path.dirname(os.path.abspath(__file__))
+RESOURCES = os.path.join(ROOT, "resources")
+
+
 class MyGame(Game):
     def get_config(self):
         config = super().get_config()
@@ -14,10 +18,12 @@ class MyGame(Game):
         return config
 
     def init_font_manager(self):
-        directory = os.path.dirname(os.path.abspath(__file__))
         self.font_manager = sdl2.ext.FontManager(
-            os.path.join(directory, "resources", "PixelFJVerdana12pt.ttf")
+            os.path.join(RESOURCES, "PixelFJVerdana12pt.ttf")
         )
+
+    def init_heavy(self):
+        self.font_manager.add(os.path.join(RESOURCES, "Hack-Regular.ttf"), "console")
 
     def init_scenes(self):
         import scenes

@@ -59,7 +59,7 @@ class SimpleScene(Scene):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.system: SystemManager = None
-        self.event: EventDispatcher = None
+        self.event: EventDispatcher = None  # Overrides Scene.event method
         self.key_event: KeyEventDispatcher = None
         self.mouse_event: MouseEventDispatcher = None
 
