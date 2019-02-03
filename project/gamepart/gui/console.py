@@ -1,7 +1,7 @@
 import code
-import math
 import io
 import sys
+import time
 
 import sdl2
 
@@ -17,74 +17,170 @@ class BufferedConsole(code.InteractiveConsole):
     def write(self, data: str):
         self.output_buffer.write(data)
 
-    def push_line(self, line: str):
+    def push_line(self, line: str, prefix: str = ""):
+        self.output_buffer.write(prefix)
         self.output_buffer.write(line)
         self.output_buffer.write("\n")
         so, se = sys.stdout, sys.stderr
         sys.stdout = sys.stderr = self.output_buffer
-        self.push(line)
+        more = self.push(line)
         sys.stdout, sys.stderr = so, se
+        return more
 
 
 class Console(GUIObject):
     def __init__(self):
         super().__init__()
-        self.shell = BufferedConsole()
-        # self.font = None
-        # self.font_size = 8
+        self.shell = BufferedConsole(
+            locals={"__name__": "__console__", "__doc__": None, "self": self}
+        )
         self.font = "console"
         self.font_size = 12
-        self.position = (0, 0)
-        self.width = 640
+        self.line_spacing = 2
+        self.position = [20, 20]
+        self.width = 600
         self.height = 200
+        self.scroll = [0, 0]
         self.color = (200, 200, 200, 200)
         self.bg_color = (20, 0, 20, 200)
-        self._max_width = self.width
-        self._max_height = self.height * 2
-        self.input_buffer = b""
-        sdl2.SDL_StartTextInput()
 
-    def _filter_output(self, data: str):
-        max_lines = math.floor(self._max_height / (self.font_size + 1))
-        max_chars = math.floor(self._max_width / (self.font_size + 1))
-        return "\n".join([row[:max_chars] for row in data.split("\n")[-max_lines:]])
+        self.prompt1 = ">>> "
+        self.prompt2 = "... "
+        self.prompt = self.prompt1
+        self.input_buffer = ""
+        self.input_index = 0
+        self.history = []
+        self.history_index = None
+
+        sdl2.SDL_StartTextInput()
+        sdl2.SDL_SetTextInputRect(
+            sdl2.SDL_Rect(
+                self.position[0],
+                self.position[1] + self.height - self.font_size,
+                self.width,
+                self.font_size,
+            )
+        )
 
     def draw(self, manager: "GUISystem"):
-        d = self.input_buffer.decode("utf8")
-        buffer = "Test " + "a" * 100 + "\n" + self.shell.output_buffer.getvalue() + d
-        buffer = self._filter_output(buffer)
+        # TODO: multiline input
+        # TODO: break long lines
+        # TODO: split into components
+        # TODO: scrolls
+        # TODO: add game to locals
+        # TODO: use game time
+        # TODO: save & load history?
+        # TODO: IPython?
+
+        line_height = self.font_size + self.line_spacing
+        buffer = self.shell.output_buffer.getvalue() + self.prompt
+        if self.history_index is None:
+            buffer += self.input_buffer[: self.input_index]
+        else:
+            buffer += self.history[self.history_index]
+        old_clip = manager.renderer.clip
+        manager.renderer.clip = (
+            self.position[0],
+            self.position[1],
+            self.width,
+            self.height,
+        )
         manager.renderer.fill(
             [(self.position[0], self.position[1], self.width, self.height)],
             self.bg_color,
         )
-        if buffer:
+
+        self.scroll[1] = (
+            self.height - (buffer.count("\n") + 1) * line_height - self.line_spacing
+        )
+        py = 0
+        for row in buffer.split("\n"):
+            spy = py + self.scroll[1]
+            if row and spy <= self.height and spy + line_height >= 0:
+                text = manager.font_manager.render(
+                    row, alias=self.font, size=self.font_size, color=self.color
+                )
+                tw = text.w
+                th = text.h
+                tx = self.position[0] + self.scroll[0]
+                ty = self.position[1] + self.scroll[1] + py
+                text = manager.sprite_factory.from_surface(text, True)
+                manager.renderer.copy(text, (0, 0, tw, th), (tx, ty, tw, th))
+            py += line_height
+
+        ttx = tx + tw
+        if time.time() % 1 <= 0.5:
             text = manager.font_manager.render(
-                buffer,
-                alias=self.font,
-                size=self.font_size,
-                color=self.color,
-                # bg_color=(100, 0, 0, 255),
-                width=int(self._max_width),
+                "|", alias=self.font, size=self.font_size, color=self.color
             )
-            tw, th = min(self.width, text.w), min(self.height, text.h)
-            sx, sy = 0, text.h - th
-            tx = self.position[0]
-            ty = self.position[1] + self.height - th
-            print((text.w, text.h), (sx, sy, tw, th), (tx, ty, tw, th))
+            ttw = text.w
+            tth = text.h
             text = manager.sprite_factory.from_surface(text, True)
-            manager.renderer.copy(text, (sx, sy, tw, th), (tx, ty, tw, th))
+            manager.renderer.copy(
+                text, (0, 0, ttw, tth), (ttx - int(ttw / 2), ty, ttw, tth)
+            )
+
+        rest = self.input_buffer[self.input_index :]
+        if rest and self.history_index is None:
+            text = manager.font_manager.render(
+                rest, alias=self.font, size=self.font_size, color=self.color
+            )
+            tw = text.w
+            th = text.h
+            text = manager.sprite_factory.from_surface(text, True)
+            manager.renderer.copy(text, (0, 0, tw, th), (ttx, ty, tw, th))
+
+        manager.renderer.clip = old_clip
 
     def event(self, event: sdl2.SDL_Event):
         if event.type == sdl2.SDL_TEXTINPUT:
-            self.input_buffer += event.text.text
+            self.input_buffer = "{}{}{}".format(
+                self.input_buffer[: self.input_index],
+                event.text.text.decode("utf8"),
+                self.input_buffer[self.input_index :],
+            )
+            self.input_index += 1
         if event.type == sdl2.SDL_KEYUP:
             if event.key.keysym.sym in (sdl2.SDLK_BACKSPACE, sdl2.SDLK_KP_BACKSPACE):
-                self.input_buffer = self.input_buffer[:-1]
+                self.input_buffer = "{}{}".format(
+                    self.input_buffer[: self.input_index][:-1],
+                    self.input_buffer[self.input_index :],
+                )
+                self.input_index = max(self.input_index - 1, 0)
+            if event.key.keysym.sym == sdl2.SDLK_DELETE:
+                self.input_buffer = "{}{}".format(
+                    self.input_buffer[: self.input_index],
+                    self.input_buffer[self.input_index :][1:],
+                )
+                self.input_index = max(self.input_index, 0)
+            elif event.key.keysym.sym == sdl2.SDLK_LEFT:
+                self.input_index = max(self.input_index - 1, 0)
+            elif event.key.keysym.sym == sdl2.SDLK_RIGHT:
+                self.input_index = min(self.input_index + 1, len(self.input_buffer))
+            elif event.key.keysym.sym == sdl2.SDLK_UP:
+                if self.history:
+                    if self.history_index is None:
+                        self.history_index = len(self.history)
+                    self.history_index = max(self.history_index - 1, 0)
+            elif event.key.keysym.sym == sdl2.SDLK_DOWN:
+                if self.history_index is not None:
+                    self.history_index = min(self.history_index + 1, len(self.history))
+                    if self.history_index == len(self.history):
+                        self.history_index = None
             elif event.key.keysym.sym in (
                 sdl2.SDLK_KP_ENTER,
                 sdl2.SDLK_RETURN,
                 sdl2.SDLK_RETURN2,
             ):
-                print(self.input_buffer)
-                self.shell.push_line(self.input_buffer.decode("utf8"))
-                self.input_buffer = b""
+                data = self.input_buffer
+                if self.history_index is not None:
+                    data = self.history[self.history_index]
+                if data:
+                    self.history.append(data)
+                if self.shell.push_line(data, self.prompt):
+                    self.prompt = self.prompt2
+                else:
+                    self.prompt = self.prompt1
+                self.input_buffer = ""
+                self.input_index = 0
+                self.history_index = None

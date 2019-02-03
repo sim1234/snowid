@@ -15,6 +15,8 @@ from .utils import get_mouse_state
 
 logger = logging.getLogger(__name__)
 
+gc.set_debug(gc.DEBUG_UNCOLLECTABLE | gc.DEBUG_STATS)
+
 
 class Game:
     """Main game wrapper"""
@@ -59,6 +61,7 @@ class Game:
         self.fps_counter.clear()
         self.time_time = time.monotonic()
         self.logger.info("All systems nominal")
+        # TODO: Fix lag spike after 30s
         gc.collect()
 
     @property
@@ -82,6 +85,7 @@ class Game:
         self.logger.debug("Initializing renderer")
         self.renderer = GfxRenderer(self.window)
         self.renderer.blendmode = sdl2.SDL_BLENDMODE_BLEND
+        self.renderer.clip = (0, 0, self.width, self.height)
 
     def init_sprite_factory(self):
         self.logger.debug("Initializing sprite factory")

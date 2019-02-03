@@ -1,3 +1,4 @@
+import ctypes
 import typing
 
 import sdl2
@@ -15,6 +16,21 @@ class GfxRenderer(sdl2.ext.Renderer):
 
     color: sdl2.ext.Color
     blendmode: int
+
+    @property
+    def clip(self) -> typing.Tuple[int, int, int, int]:
+        rect = sdl2.SDL_Rect()
+        ret = sdl2.SDL_RenderGetClipRect(self.sdlrenderer, ctypes.byref(rect))
+        if ret:
+            raise sdl2.ext.SDLError()
+        return rect.x, rect.y, rect.w, rect.h
+
+    @clip.setter
+    def clip(self, value: typing.Tuple[int, int, int, int]):
+        rect = sdl2.SDL_Rect(*value)
+        ret = sdl2.SDL_RenderSetClipRect(self.sdlrenderer, ctypes.byref(rect))
+        if ret:
+            raise sdl2.ext.SDLError()
 
     def _shape(
         self,
@@ -126,3 +142,13 @@ class GfxRenderer(sdl2.ext.Renderer):
         )
 
     # TODO: texturedPolygon
+
+    def fill_color(self, color=None):
+        if color is not None:
+            tmp = self.color
+            self.color = color
+        ret = sdl2.SDL_RenderFillRect(self.sdlrenderer, None)
+        if color is not None:
+            self.color = tmp
+        if ret == -1:
+            raise sdl2.ext.SDLError()
