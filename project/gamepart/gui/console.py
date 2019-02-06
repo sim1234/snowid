@@ -2,6 +2,7 @@ import code
 import io
 import sys
 import time
+import typing
 
 import sdl2
 
@@ -29,29 +30,31 @@ class BufferedConsole(code.InteractiveConsole):
 
 
 class Console(GUIObject):
-    def __init__(self):
+    def __init__(self, shell_locals: dict = None):
         super().__init__()
-        self.shell = BufferedConsole(
-            locals={"__name__": "__console__", "__doc__": None, "self": self}
-        )
+        locals_ = {"__name__": "__console__", "__doc__": None, "self": self}
+        if shell_locals:
+            locals_.update(shell_locals)
+        self.shell = BufferedConsole(locals=locals_)
         self.font = "console"
-        self.font_size = 12
-        self.line_spacing = 2
-        self.position = [20, 20]
-        self.width = 600
-        self.height = 200
+        self.font_size: int = 12
+        self.line_spacing: int = 2
+        self.position = [0, 0]
+        self.width: int = 640
+        self.height: int = 200
         self.scroll = [0, 0]
         self.color = (200, 200, 200, 200)
         self.bg_color = (20, 0, 20, 200)
 
-        self.prompt1 = ">>> "
-        self.prompt2 = "... "
-        self.prompt = self.prompt1
-        self.input_buffer = ""
-        self.input_index = 0
-        self.history = []
-        self.history_index = None
+        self.prompt1: str = ">>> "
+        self.prompt2: str = "... "
+        self.prompt: str = self.prompt1
+        self.input_buffer: str = ""
+        self.input_index: int = 0
+        self.history: typing.List[str] = []
+        self.history_index: typing.Optional[int] = None
 
+    def focus(self):
         sdl2.SDL_StartTextInput()
         sdl2.SDL_SetTextInputRect(
             sdl2.SDL_Rect(
@@ -62,10 +65,15 @@ class Console(GUIObject):
             )
         )
 
+    def unfocus(self):
+        sdl2.SDL_StopTextInput()
+
     def draw(self, manager: "GUISystem"):
         # TODO: multiline input
         # TODO: break long lines
         # TODO: split into components
+        # TODO: clipboard
+        # TODO: stop propagation of all events
         # TODO: scrolls
         # TODO: add game to locals
         # TODO: use game time

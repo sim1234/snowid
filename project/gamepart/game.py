@@ -15,43 +15,44 @@ from .utils import get_mouse_state
 
 logger = logging.getLogger(__name__)
 
-gc.set_debug(gc.DEBUG_UNCOLLECTABLE | gc.DEBUG_STATS)
-
 
 class Game:
     """Main game wrapper"""
+
+    context_class: typing.Type[Context] = Context
 
     def __init__(self):
         logger.debug("Starting")
         self.init()
 
-        self.config = self.get_config()
-        self.width = self.config["width"]
-        self.height = self.config["height"]
-        self.max_fps = self.config["max_fps"]
-        self.caption = self.config["caption"]
-        self.fullscreen = self.config["fullscreen"]
-        self.time_step = self.config["time_step"]
-        self.time_speed = self.config["time_speed"]
-        self.time_max_iter = self.config["time_max_iter"]
+        self.config: dict = self.get_config()
+        self.width: int = self.config["width"]
+        self.height: int = self.config["height"]
+        self.max_fps: float = self.config["max_fps"]
+        self.show_fps: bool = self.config["show_fps"]
+        self.caption: str = self.config["caption"]
+        self.fullscreen: bool = self.config["fullscreen"]
+        self.time_step: float = self.config["time_step"]
+        self.time_speed: float = self.config["time_speed"]
+        self.time_max_iter: int = self.config["time_max_iter"]
 
         self.window: sdl2.ext.Window = None
         self.renderer: GfxRenderer = None
         self.sprite_factory: sdl2.ext.SpriteFactory = None
         self.font_manager: sdl2.ext.FontManager = None
-        self.frame_num = 0
+        self.frame_num: int = 0
         self.init_display()
         self.init_renderer()
         self.init_sprite_factory()
         self.init_font_manager()
-        self.show_loading_screen()
+        self.display_loading_screen()
         self.init_heavy()
 
-        self.fps_counter = FPSCounter()
-        self.feeder = TimeFeeder(self.time_step, self.time_speed)
+        self.fps_counter: FPSCounter = FPSCounter()
+        self.feeder: TimeFeeder = TimeFeeder(self.time_step, self.time_speed)
         self.key_state: typing.Dict[int, bool] = sdl2.SDL_GetKeyboardState(None)
         self.mouse_state: typing.Tuple[int, int, int] = get_mouse_state()
-        self.running = False
+        self.running: bool = False
         self.scenes: typing.Dict[str, "Scene"] = {}
         self.scene_switch_queue = collections.deque()
         self.active_scene: "Scene" = self.add_exit_scene()
@@ -59,9 +60,8 @@ class Game:
         self.logger.debug("Initializing scenes")
         self.init_scenes()
         self.fps_counter.clear()
-        self.time_time = time.monotonic()
+        self.time_time: float = time.monotonic()
         self.logger.info("All systems nominal")
-        # TODO: Fix lag spike after 30s
         gc.collect()
 
     @property
@@ -99,7 +99,7 @@ class Game:
             scene.init()
         self.active_scene.start(self.context)
 
-    def show_loading_screen(self):
+    def display_loading_screen(self):
         if self.font_manager:
             text = self.font_manager.render("Loading", size=24)
             pos = (
@@ -112,7 +112,7 @@ class Game:
             self.renderer.copy(text, None, pos)
             self.renderer.present()
 
-    def show_fps(self):
+    def display_fps(self):
         fps = int(self.fps_counter.get_fps())
         logger.debug(f"FPS={fps}")
         if self.font_manager:
@@ -134,8 +134,8 @@ class Game:
         self.tick()
         self.active_scene.frame()
         self.fps_counter.frame()
-        if self.key_state[sdl2.SDL_SCANCODE_GRAVE]:
-            self.show_fps()
+        if self.show_fps:
+            self.display_fps()
         self.fps_counter.target_fps(self.max_fps)
         self.renderer.present()
 
@@ -194,14 +194,15 @@ class Game:
             "height": 480,
             "caption": self.__class__.__name__,
             "max_fps": 128,
+            "show_fps": False,
             "fullscreen": False,
             "time_step": 1 / 128,
             "time_speed": 1.0,
             "time_max_iter": 8,
         }
 
-    def get_initial_context(self) -> "Context":
-        return Context(last_scene=self.active_scene)
+    def get_initial_context(self) -> Context:
+        return self.context_class(last_scene=self.active_scene)
 
     def add_exit_scene(self) -> "Scene":
         return self.add_scene("exit", ExitScene)

@@ -1,18 +1,18 @@
 import sdl2
 import sdl2.ext
 
-from gamepart import SimpleScene
-from gamepart.context import Context
 from gamepart.physics import World
 from gamepart.physics.vector import Vector
+from gamepart.render import GfxRenderer
 from gamepart.viewport import ViewPort, FlippedViewPort
 
+from ..base import MyBaseScene, MyContext
 from .line import BoundLine
 from .ball import Ball, TexturedBall
 from .player import Player, PlayerController
 
 
-class BallScene(SimpleScene):
+class BallScene(MyBaseScene):
     bg_color = sdl2.ext.Color(255, 255, 255)
 
     def __init__(self, *args, **kwargs):
@@ -28,16 +28,13 @@ class BallScene(SimpleScene):
         self.world = World()
         self.world.space.gravity = (0, -1000)
         self.system.add(self.world)
-        # self.viewport = ViewPort(
-        #     self.game.renderer, self.game.width, self.game.height
-        # )
         self.viewport = FlippedViewPort(
             self.game.renderer, self.game.width, self.game.height
         )
         self.viewport.change_zoom(0.5)
         self.system.add(self.viewport)
 
-        self.key_event.on_up(sdl2.SDLK_SPACE, self.switch_to_test)
+        self.key_event.on_up(sdl2.SDLK_F2, self.switch_to_test)
         self.key_event.on_down(sdl2.SDLK_w, self.player_jump)
         self.mouse_event.on_down(sdl2.SDL_BUTTON_LEFT, self.start_drag)
         self.mouse_event.on_up(sdl2.SDL_BUTTON_LEFT, self.end_drag)
@@ -48,10 +45,10 @@ class BallScene(SimpleScene):
         self.player_ctrl = PlayerController(self.player)
         self.key_event.on_down(sdl2.SDLK_e, self.player_ctrl.setter("shoot", True))
 
-    def start(self, context: Context):
+    def start(self, context: MyContext):
+        self.system.clear_all()
         super().start(context)
         tex = self.game.sprite_factory.from_image("resources/cube.png")
-        self.system.clear_all()
         self.system.add_all(
             Ball(30, 20, (100, 100), (100, 100)),
             Ball(40, 30, (200, 200), (100, 100)),
@@ -109,6 +106,7 @@ class BallScene(SimpleScene):
         self.player_ctrl.control(self.game.world_time, delta)
         self.world.tick(delta)
 
-    def every_frame(self, renderer: sdl2.ext.Renderer):
+    def every_frame(self, renderer: GfxRenderer):
         renderer.clear(self.bg_color)
         self.viewport.draw()
+        super().every_frame(renderer)

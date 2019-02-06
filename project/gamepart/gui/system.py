@@ -1,3 +1,5 @@
+import typing
+
 import sdl2.ext
 
 from ..subsystem import SubSystem
@@ -21,13 +23,26 @@ class GUISystem(SubSystem["GUIObject"]):
         self.height = height
         self.focused_object: GUIObject = None
 
+    @staticmethod
+    def accepts(obj: typing.Any) -> bool:
+        return isinstance(obj, GUIObject)
+
     def draw(self):
         for obj in self.objects:
-            obj.draw(self)
+            if obj.visible:
+                obj.draw(self)
 
     def event(self, event: sdl2.SDL_Event):
         for obj in self.objects:
-            obj.event(event)
+            if obj.enabled:
+                obj.event(event)
+
+    def change_focus(self, obj: typing.Optional["GUIObject"]):
+        if self.focused_object:
+            self.focused_object.unfocus()
+        self.focused_object = obj
+        if self.focused_object:
+            self.focused_object.focus()
 
 
 from .guiobject import GUIObject  # noqa

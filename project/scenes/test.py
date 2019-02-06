@@ -3,43 +3,28 @@ import math
 
 import sdl2.ext
 
-from gamepart import SimpleScene
 from gamepart.render import GfxRenderer
-from gamepart.gui import GUISystem, Console
+
+from .base import MyBaseScene
 
 
-class TestScene(SimpleScene):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.gui: GUISystem = None
-
+class TestScene(MyBaseScene):
     def init(self):
         super().init()
-        self.gui = GUISystem(
-            self.game.renderer,
-            self.game.font_manager,
-            self.game.sprite_factory,
-            self.game.width,
-            self.game.height,
-        )
-        self.gui.add(Console())
-        self.system.add(self.gui)
         self.key_event.on_up(sdl2.SDLK_COMMA, self.decrease_fps)
         self.key_event.on_up(sdl2.SDLK_PERIOD, self.increase_fps)
-        self.key_event.on_up(sdl2.SDLK_SPACE, self.switch_to_balls)
-        self.event.chain(self.gui.event)
-        # time.sleep(1)
+        self.key_event.on_up(sdl2.SDLK_F2, self.switch_to_balls)
 
     def every_frame(self, renderer: GfxRenderer):
+        self.game.renderer.clear((0, 0, 0, 255))
         # if random.random() > 0.9999:
         #     self.game.queue_scene_switch('test')
         # d = random.randint(1, 10)**6 / 10**6 / 50.0
         # time.sleep(d)
-        self.game.renderer.clear((0, 0, 0, 255))
         x = int((math.sin(time.perf_counter()) + 1) * 150) + 50
         y = int((math.cos(time.perf_counter()) + 1) * 150) + 50
         self.game.renderer.fill((x, y, 50, 50), (0, 255, 0, 255))
-        self.gui.draw()
+        super().every_frame(renderer)
 
     def decrease_fps(self, _=None):
         self.game.max_fps /= 2

@@ -5,12 +5,16 @@ import sdl2.ext
 
 from gamepart import Game
 
+from context import MyContext
+
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 RESOURCES = os.path.join(ROOT, "resources")
 
 
 class MyGame(Game):
+    context_class = MyContext
+
     def get_config(self):
         config = super().get_config()
         config["max_fps"] = 120

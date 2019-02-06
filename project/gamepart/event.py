@@ -74,6 +74,14 @@ class Dispatcher(typing.Generic[T, TD]):
         self.callbacks.clear()
         self.chained.clear()
 
+    def noop(self, *args, **kwargs):
+        """Do nothing"""
+
+    def stop(self, *args, **kwargs):
+        """Stop event propagation"""
+
+        return True
+
 
 class EventDispatcher(Dispatcher[int, sdl2.SDL_Event]):
     """Dispatcher for SDL_Events"""
