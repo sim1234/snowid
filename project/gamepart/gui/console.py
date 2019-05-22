@@ -50,6 +50,7 @@ class Console(GUIObject):
         self.prompt2: str = "... "
         self.prompt: str = self.prompt1
         self.input_buffer: str = ""
+        self.input_buffer2: str = ""
         self.input_index: int = 0
         self.history: typing.List[str] = []
         self.history_index: typing.Optional[int] = None
@@ -82,10 +83,7 @@ class Console(GUIObject):
 
         line_height = self.font_size + self.line_spacing
         buffer = self.shell.output_buffer.getvalue() + self.prompt
-        if self.history_index is None:
-            buffer += self.input_buffer[: self.input_index]
-        else:
-            buffer += self.history[self.history_index]
+        buffer += self.input_buffer[: self.input_index]
         old_clip = manager.renderer.clip
         manager.renderer.clip = (
             self.position[0],
@@ -148,6 +146,7 @@ class Console(GUIObject):
                 self.input_buffer[self.input_index :],
             )
             self.input_index += 1
+            self.history_index = None
         if event.type == sdl2.SDL_KEYUP:
             if event.key.keysym.sym in (sdl2.SDLK_BACKSPACE, sdl2.SDLK_KP_BACKSPACE):
                 self.input_buffer = "{}{}".format(
@@ -155,26 +154,44 @@ class Console(GUIObject):
                     self.input_buffer[self.input_index :],
                 )
                 self.input_index = max(self.input_index - 1, 0)
+                self.history_index = None
             if event.key.keysym.sym == sdl2.SDLK_DELETE:
                 self.input_buffer = "{}{}".format(
                     self.input_buffer[: self.input_index],
                     self.input_buffer[self.input_index :][1:],
                 )
                 self.input_index = max(self.input_index, 0)
+                self.history_index = None
             elif event.key.keysym.sym == sdl2.SDLK_LEFT:
                 self.input_index = max(self.input_index - 1, 0)
+                self.history_index = None
             elif event.key.keysym.sym == sdl2.SDLK_RIGHT:
                 self.input_index = min(self.input_index + 1, len(self.input_buffer))
+                self.history_index = None
+            elif event.key.keysym.sym == sdl2.SDLK_END:
+                self.input_index = len(self.input_buffer)
+                self.history_index = None
+            elif event.key.keysym.sym == sdl2.SDLK_HOME:
+                self.input_index = 0
+                self.history_index = None
             elif event.key.keysym.sym == sdl2.SDLK_UP:
                 if self.history:
                     if self.history_index is None:
                         self.history_index = len(self.history)
+                        self.input_buffer2 = self.input_buffer
                     self.history_index = max(self.history_index - 1, 0)
+                    self.input_buffer = self.history[self.history_index]
+                    self.input_index = len(self.input_buffer)
             elif event.key.keysym.sym == sdl2.SDLK_DOWN:
                 if self.history_index is not None:
                     self.history_index = min(self.history_index + 1, len(self.history))
                     if self.history_index == len(self.history):
+                        self.input_buffer = self.input_buffer2
+                        self.input_index = len(self.input_buffer)
                         self.history_index = None
+                    else:
+                        self.input_buffer = self.history[self.history_index]
+                        self.input_index = len(self.input_buffer)
             elif event.key.keysym.sym in (
                 sdl2.SDLK_KP_ENTER,
                 sdl2.SDLK_RETURN,
