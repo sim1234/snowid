@@ -5,7 +5,7 @@ from ..subsystem import SubSystemObject
 
 class GUIObject(SubSystemObject):
     def __init__(self):
-        super(GUIObject, self).__init__()
+        super().__init__()
         self.enabled: bool = True
         self.visible: bool = True
 

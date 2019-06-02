@@ -50,7 +50,7 @@ class MyBaseScene(SimpleScene):
         return context
 
     def start(self, context: MyContext):  # TODO: fix mypy
-        super(MyBaseScene, self).start(context)
+        super().start(context)
         if context.console is None:
             self.console = Console({"game": self.game})
             self.console.visible = False

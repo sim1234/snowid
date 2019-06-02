@@ -6,6 +6,7 @@ import typing
 
 import sdl2
 
+from ..utils import get_clipboard_text
 from .system import GUISystem
 from .guiobject import GUIObject
 
@@ -29,22 +30,9 @@ class BufferedConsole(code.InteractiveConsole):
         return more
 
 
-class Console(GUIObject):
-    def __init__(self, shell_locals: dict = None):
-        super().__init__()
-        locals_ = {"__name__": "__console__", "__doc__": None, "self": self}
-        if shell_locals:
-            locals_.update(shell_locals)
-        self.shell = BufferedConsole(locals=locals_)
-        self.font = "console"
-        self.font_size: int = 12
-        self.line_spacing: int = 2
-        self.position = [0, 0]
-        self.width: int = 640
-        self.height: int = 200
-        self.scroll = [0, 0]
-        self.color = (200, 200, 200, 200)
-        self.bg_color = (20, 0, 20, 200)
+class ConsoleService:
+    def __init__(self, shell: BufferedConsole):
+        self.shell: BufferedConsole = shell
 
         self.prompt1: str = ">>> "
         self.prompt2: str = "... "
@@ -54,6 +42,116 @@ class Console(GUIObject):
         self.input_index: int = 0
         self.history: typing.List[str] = []
         self.history_index: typing.Optional[int] = None
+
+    def get_all_buffer(self):
+        return self.get_buffer_start() + self.get_buffer_end()
+
+    def get_buffer_start(self):
+        return (
+            self.shell.output_buffer.getvalue()
+            + self.prompt
+            + self.input_buffer[: self.input_index]
+        )
+
+    def get_buffer_end(self):
+        return self.input_buffer[self.input_index :]
+
+    def exit_history(self):
+        self.history_index = None
+
+    def enter_text(self, text: str):
+        self.exit_history()
+        self.input_buffer = "{}{}{}".format(
+            self.input_buffer[: self.input_index],
+            text,
+            self.input_buffer[self.input_index :],
+        )
+        self.input_index += len(text)
+
+    def press_backspace(self, amount: int = 1):
+        self.exit_history()
+        self.input_buffer = "{}{}".format(
+            self.input_buffer[: self.input_index][:-amount],
+            self.input_buffer[self.input_index :],
+        )
+        self.input_index = max(self.input_index - amount, 0)
+
+    def press_delete(self, amount: int = 1):
+        self.exit_history()
+        self.input_buffer = "{}{}".format(
+            self.input_buffer[: self.input_index],
+            self.input_buffer[self.input_index :][amount:],
+        )
+        self.input_index = max(self.input_index, 0)
+
+    def press_left(self, amount: int = 1):
+        self.exit_history()
+        self.input_index = max(self.input_index - amount, 0)
+
+    def press_right(self, amount: int = 1):
+        self.exit_history()
+        self.input_index = min(self.input_index + amount, len(self.input_buffer))
+
+    def press_end(self):
+        self.exit_history()
+        self.input_index = len(self.input_buffer)
+
+    def press_home(self):
+        self.exit_history()
+        self.input_index = 0
+
+    def press_up(self):
+        if self.history:
+            if self.history_index is None:
+                self.history_index = len(self.history)
+                self.input_buffer2 = self.input_buffer
+            self.history_index = max(self.history_index - 1, 0)
+            self.input_buffer = self.history[self.history_index]
+            self.input_index = len(self.input_buffer)
+
+    def press_down(self):
+        if self.history_index is not None:
+            self.history_index = min(self.history_index + 1, len(self.history))
+            if self.history_index == len(self.history):
+                self.input_buffer = self.input_buffer2
+                self.input_index = len(self.input_buffer)
+                self.history_index = None
+            else:
+                self.input_buffer = self.history[self.history_index]
+                self.input_index = len(self.input_buffer)
+
+    def press_enter(self):
+        data = self.input_buffer
+        if self.history_index is not None:
+            data = self.history[self.history_index]
+        self.exit_history()
+        if data:
+            self.history.append(data)
+        if self.shell.push_line(data, self.prompt):
+            self.prompt = self.prompt2
+        else:
+            self.prompt = self.prompt1
+        self.input_buffer = ""
+        self.input_index = 0
+
+
+class Console(GUIObject):
+    def __init__(self, shell_locals: dict = None):
+        super().__init__()
+        locals_ = {"__name__": "__console__", "__doc__": None, "self": self}
+        if shell_locals:
+            locals_.update(shell_locals)
+        self.shell = BufferedConsole(locals=locals_)
+        self.service = ConsoleService(self.shell)
+        self.font = "console"
+        self.font_size: int = 12
+        self.line_spacing: int = 2
+        self.position = [0, 0]
+        self.width: int = 640
+        self.height: int = 200
+        self.scroll = [0, 0]
+        self.color = (200, 200, 200, 200)
+        self.bg_color = (20, 0, 20, 200)
 
     def focus(self):
         sdl2.SDL_StartTextInput()
@@ -82,8 +180,7 @@ class Console(GUIObject):
         # TODO: IPython?
 
         line_height = self.font_size + self.line_spacing
-        buffer = self.shell.output_buffer.getvalue() + self.prompt
-        buffer += self.input_buffer[: self.input_index]
+        buffer = self.service.get_buffer_start()
         old_clip = manager.renderer.clip
         manager.renderer.clip = (
             self.position[0],
@@ -126,8 +223,8 @@ class Console(GUIObject):
                 text, (0, 0, ttw, tth), (ttx - int(ttw / 2), ty, ttw, tth)
             )
 
-        rest = self.input_buffer[self.input_index :]
-        if rest and self.history_index is None:
+        rest = self.service.get_buffer_end()
+        if rest:
             text = manager.font_manager.render(
                 rest, alias=self.font, size=self.font_size, color=self.color
             )
@@ -140,72 +237,32 @@ class Console(GUIObject):
 
     def event(self, event: sdl2.SDL_Event):
         if event.type == sdl2.SDL_TEXTINPUT:
-            self.input_buffer = "{}{}{}".format(
-                self.input_buffer[: self.input_index],
-                event.text.text.decode("utf8"),
-                self.input_buffer[self.input_index :],
-            )
-            self.input_index += 1
-            self.history_index = None
-        if event.type == sdl2.SDL_KEYUP:
+            self.service.enter_text(event.text.text.decode("utf8"))
+        if event.type == sdl2.SDL_KEYDOWN:
             if event.key.keysym.sym in (sdl2.SDLK_BACKSPACE, sdl2.SDLK_KP_BACKSPACE):
-                self.input_buffer = "{}{}".format(
-                    self.input_buffer[: self.input_index][:-1],
-                    self.input_buffer[self.input_index :],
-                )
-                self.input_index = max(self.input_index - 1, 0)
-                self.history_index = None
+                self.service.press_backspace()
             if event.key.keysym.sym == sdl2.SDLK_DELETE:
-                self.input_buffer = "{}{}".format(
-                    self.input_buffer[: self.input_index],
-                    self.input_buffer[self.input_index :][1:],
-                )
-                self.input_index = max(self.input_index, 0)
-                self.history_index = None
+                self.service.press_delete()
             elif event.key.keysym.sym == sdl2.SDLK_LEFT:
-                self.input_index = max(self.input_index - 1, 0)
-                self.history_index = None
+                self.service.press_left()
             elif event.key.keysym.sym == sdl2.SDLK_RIGHT:
-                self.input_index = min(self.input_index + 1, len(self.input_buffer))
-                self.history_index = None
+                self.service.press_right()
             elif event.key.keysym.sym == sdl2.SDLK_END:
-                self.input_index = len(self.input_buffer)
-                self.history_index = None
+                self.service.press_end()
             elif event.key.keysym.sym == sdl2.SDLK_HOME:
-                self.input_index = 0
-                self.history_index = None
+                self.service.press_home()
             elif event.key.keysym.sym == sdl2.SDLK_UP:
-                if self.history:
-                    if self.history_index is None:
-                        self.history_index = len(self.history)
-                        self.input_buffer2 = self.input_buffer
-                    self.history_index = max(self.history_index - 1, 0)
-                    self.input_buffer = self.history[self.history_index]
-                    self.input_index = len(self.input_buffer)
+                self.service.press_up()
             elif event.key.keysym.sym == sdl2.SDLK_DOWN:
-                if self.history_index is not None:
-                    self.history_index = min(self.history_index + 1, len(self.history))
-                    if self.history_index == len(self.history):
-                        self.input_buffer = self.input_buffer2
-                        self.input_index = len(self.input_buffer)
-                        self.history_index = None
-                    else:
-                        self.input_buffer = self.history[self.history_index]
-                        self.input_index = len(self.input_buffer)
+                self.service.press_down()
+            elif (
+                event.key.keysym.sym == sdl2.SDLK_v
+                and event.key.keysym.mod & sdl2.KMOD_CTRL
+            ):
+                self.service.enter_text(get_clipboard_text())
             elif event.key.keysym.sym in (
                 sdl2.SDLK_KP_ENTER,
                 sdl2.SDLK_RETURN,
                 sdl2.SDLK_RETURN2,
             ):
-                data = self.input_buffer
-                if self.history_index is not None:
-                    data = self.history[self.history_index]
-                if data:
-                    self.history.append(data)
-                if self.shell.push_line(data, self.prompt):
-                    self.prompt = self.prompt2
-                else:
-                    self.prompt = self.prompt1
-                self.input_buffer = ""
-                self.input_index = 0
-                self.history_index = None
+                self.service.press_enter()
