@@ -5,8 +5,8 @@ class ProtocolMeta(type):
     def __new__(
         mcs,
         name: str,
-        bases: typing.Tuple[type, ...],
-        dct: typing.Dict[str, typing.Any],
+        bases: tuple[type, ...],
+        dct: dict[str, typing.Any],
     ):
         defaults = sorted(
             [(key, value) for key, value in dct.items() if mcs.is_field(key, value)]
@@ -28,9 +28,9 @@ class ProtocolMeta(type):
 
 
 class Protocol(metaclass=ProtocolMeta):
-    __slots__: typing.Tuple[str, ...]
-    _defaults: typing.Tuple[typing.Tuple[str, typing.Any]]
-    _keys: typing.Tuple[str, ...]
+    __slots__: tuple[str, ...]
+    _defaults: tuple[tuple[str, typing.Any]]
+    _keys: tuple[str, ...]
 
     def __init__(self):
         self.clear()
@@ -39,24 +39,24 @@ class Protocol(metaclass=ProtocolMeta):
         for key, value in zip(self._keys, data):
             setattr(self, key, value)
 
-    def update_dict(self, data: typing.Dict[str, typing.Any]):
+    def update_dict(self, data: dict[str, typing.Any]):
         for key, value in data.items():
             setattr(self, key, value)
 
-    def serialize(self) -> typing.List[typing.Any]:
+    def serialize(self) -> list[typing.Any]:
         return [getattr(self, key, default) for key, default in self._defaults]
 
     def serialize_dict(self):
         return {key: getattr(self, key, default) for key, default in self._defaults}
 
     @classmethod
-    def deserialize(cls, data: typing.List[typing.Any]) -> "Protocol":
+    def deserialize(cls, data: list[typing.Any]) -> "Protocol":
         instance = cls()
         instance.update(data)
         return instance
 
     @classmethod
-    def deserialize_dict(cls, data: typing.Dict[str, typing.Any]) -> "Protocol":
+    def deserialize_dict(cls, data: dict[str, typing.Any]) -> "Protocol":
         instance = cls()
         instance.update_dict(data)
         return instance

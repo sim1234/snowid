@@ -1,7 +1,7 @@
 import typing
 
-from ..subsystem import SubSystem
 from ..render import GfxRenderer
+from ..subsystem import SubSystem
 
 
 class ViewPort(SubSystem["GraphicalObject"]):
@@ -38,7 +38,7 @@ class ViewPort(SubSystem["GraphicalObject"]):
     def y_to_view(self, y: float) -> float:
         return (y - self.y) * self.zoom
 
-    def to_view(self, pos: typing.Tuple[float, float]) -> typing.Tuple[float, float]:
+    def to_view(self, pos: tuple[float, float]) -> tuple[float, float]:
         return self.x_to_view(pos[0]), self.y_to_view(pos[1])  # TODO: inline?
 
     def d_to_view(self, d: float) -> float:
@@ -50,25 +50,23 @@ class ViewPort(SubSystem["GraphicalObject"]):
     def y_to_world(self, y: float) -> float:
         return (y / self.zoom) + self.y
 
-    def to_world(self, pos: typing.Tuple[float, float]) -> typing.Tuple[float, float]:
+    def to_world(self, pos: tuple[float, float]) -> tuple[float, float]:
         return self.x_to_world(pos[0]), self.y_to_world(pos[1])  # TODO: inline?
 
     def d_to_world(self, d: float) -> float:
         return d / self.zoom
 
     @property
-    def center(self) -> typing.Tuple[float, float]:
+    def center(self) -> tuple[float, float]:
         return self.to_world((self.width / 2, self.height / 2))
 
     @center.setter
-    def center(self, value: typing.Tuple[float, float]):
+    def center(self, value: tuple[float, float]):
         cx, cy = self.center
         self.x += value[0] - cx
         self.y += value[1] - cy
 
-    def change_zoom(
-        self, change: float = 1, pos: typing.Optional[typing.Tuple[float, float]] = None
-    ):
+    def change_zoom(self, change: float = 1, pos: tuple[float, float] | None = None):
         if pos is None:
             pos = self.center
         self.x += (1 - 1 / change) * (pos[0] - self.x)

@@ -1,14 +1,14 @@
 import typing
 
 from ..subsystem import SubSystemObject
-from .utils import pymunk, typed_property
 from .category import Category, cat_none
+from .utils import pymunk, typed_property
 
 
 class PhysicalObject(SubSystemObject):
     def __init__(
         self,
-        body: typing.Optional[pymunk.Body],
+        body: pymunk.Body | None,
         shapes: typing.Iterable[pymunk.Shape],
         category: Category = cat_none,
     ):
@@ -17,8 +17,8 @@ class PhysicalObject(SubSystemObject):
         self.shapes = list(shapes)
         self.category = category
 
-    @typed_property(typing.Tuple[float, float])
-    def position(self) -> typing.Tuple[float, float]:
+    @typed_property(tuple[float, float])
+    def position(self) -> tuple[float, float]:
         return self.body.position
 
     @property
@@ -42,7 +42,7 @@ T = typing.TypeVar("T", bound=pymunk.Shape)
 class SimplePhysicalObject(PhysicalObject, typing.Generic[T]):
     def __init__(
         self,
-        body: typing.Optional[pymunk.Body],
+        body: pymunk.Body | None,
         shape: T,
         category: Category = cat_none,
     ):

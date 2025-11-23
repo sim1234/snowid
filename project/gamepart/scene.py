@@ -2,6 +2,7 @@ import sdl2
 import sdl2.ext
 
 from gamepart.subsystem import SystemManager
+
 from .context import Context
 from .event import EventDispatcher, KeyEventDispatcher, MouseEventDispatcher
 from .render import GfxRenderer
@@ -11,7 +12,7 @@ class Scene:
     """Scene base"""
 
     def __init__(self, game: "Game", name: str, *args, **kwargs):
-        self.game: "Game" = game
+        self.game: Game = game
         self.name: str = name
         self.args = args
         self.kwargs = kwargs

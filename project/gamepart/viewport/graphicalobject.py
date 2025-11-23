@@ -3,12 +3,12 @@ import typing
 
 import sdl2.ext
 
-from ..subsystem import SubSystemObject
 from ..physics.vector import Vector
+from ..subsystem import SubSystemObject
 
 
 class GraphicalObject(SubSystemObject):
-    position: typing.Tuple[float, float]
+    position: tuple[float, float]
     angle: float
 
     def draw(self, vp: "ViewPort"):
@@ -44,9 +44,7 @@ class TexturedObject(GraphicalObject):
 
 
 class GFXObject(GraphicalObject):
-    color: typing.Union[
-        typing.Tuple[int, int, int], typing.Tuple[int, int, int, int], sdl2.ext.Color
-    ]
+    color: tuple[int, int, int] | tuple[int, int, int, int] | sdl2.ext.Color
 
 
 class Point(GFXObject):
@@ -55,7 +53,7 @@ class Point(GFXObject):
 
 
 class Line(GFXObject):
-    end_points: typing.Tuple[typing.Tuple[float, float], typing.Tuple[float, float]]
+    end_points: tuple[tuple[float, float], tuple[float, float]]
 
     def draw(self, vp: "ViewPort"):
         start, end = self.end_points
@@ -65,7 +63,7 @@ class Line(GFXObject):
 
 
 class Polygon(GFXObject):
-    points: typing.Iterable[typing.Tuple[float, float]]
+    points: typing.Iterable[tuple[float, float]]
 
     def draw(self, vp: "ViewPort"):
         points = [vp.to_view(p) for p in self.points]

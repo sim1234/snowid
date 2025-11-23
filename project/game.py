@@ -2,11 +2,8 @@ import os
 
 import sdl2
 import sdl2.ext
-
-from gamepart import Game
-
 from context import MyContext
-
+from gamepart import Game
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 RESOURCES = os.path.join(ROOT, "resources")

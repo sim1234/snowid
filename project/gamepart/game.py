@@ -1,15 +1,14 @@
 import collections
-import logging
-import typing
-import time
-import sys
 import gc
+import logging
+import sys
+import time
 
 import sdl2
 import sdl2.ext
 
-from .render import GfxRenderer
 from .context import Context
+from .render import GfxRenderer
 from .time import FPSCounter, TimeFeeder
 from .utils import get_mouse_state
 
@@ -19,7 +18,7 @@ logger = logging.getLogger(__name__)
 class Game:
     """Main game wrapper"""
 
-    context_class: typing.Type[Context] = Context
+    context_class: type[Context] = Context
 
     def __init__(self):
         logger.debug("Starting")
@@ -50,12 +49,12 @@ class Game:
 
         self.fps_counter: FPSCounter = FPSCounter()
         self.feeder: TimeFeeder = TimeFeeder(self.time_step, self.time_speed)
-        self.key_state: typing.Dict[int, bool] = sdl2.SDL_GetKeyboardState(None)
-        self.mouse_state: typing.Tuple[int, int, int] = get_mouse_state()
+        self.key_state: dict[int, bool] = sdl2.SDL_GetKeyboardState(None)
+        self.mouse_state: tuple[int, int, int] = get_mouse_state()
         self.running: bool = False
-        self.scenes: typing.Dict[str, "Scene"] = {}
+        self.scenes: dict[str, Scene] = {}
         self.scene_switch_queue = collections.deque()
-        self.active_scene: "Scene" = self.add_exit_scene()
+        self.active_scene: Scene = self.add_exit_scene()
         self.context: Context = self.get_initial_context()
         self.logger.debug("Initializing scenes")
         self.init_scenes()
@@ -145,7 +144,7 @@ class Game:
             self.active_scene.tick(delta)
         self.time_time = new_time
 
-    def add_scene(self, name: str, scene: typing.Type["Scene"], *args, **kwargs):
+    def add_scene(self, name: str, scene: type["Scene"], *args, **kwargs):
         logger.debug(f"Adding scene {scene.__name__}(name={name!r})")
         if name in self.scenes:
             raise ValueError(f"Scene with name {name!r} already exists")

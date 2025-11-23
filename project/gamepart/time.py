@@ -1,7 +1,7 @@
 import collections
 import logging
-import typing
 import time
+import typing
 
 logger = logging.getLogger(__name__)
 
@@ -10,7 +10,7 @@ class FPSCounter:
     """FPS counter with throttling functionality"""
 
     def __init__(self, maxlen: int = 120):
-        self.history: typing.Deque[float] = collections.deque(maxlen=maxlen)
+        self.history: collections.deque[float] = collections.deque(maxlen=maxlen)
         self.last_frame: float = time.perf_counter()
 
     def frame(self) -> float:
@@ -27,7 +27,7 @@ class FPSCounter:
 
     def target_fps(self, fps: float = 120, recent: int = None):
         if recent is None:
-            recent = int(len(self.history) / 2 ** 0.5)
+            recent = int(len(self.history) / 2**0.5)
         history = list(self.history)[-recent:]
         len_ = len(history)
         sum_ = sum(history)
@@ -48,7 +48,7 @@ class FPSCounter:
 class TimeFeeder:
     """Quantize passed time into time_step chunks"""
 
-    def __init__(self, time_step: float = 1 / 2 ** 10, speed: float = 1.0):
+    def __init__(self, time_step: float = 1 / 2**10, speed: float = 1.0):
         self.time_step = time_step
         self.speed = speed
         self.system_time = 0.0

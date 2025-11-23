@@ -1,9 +1,8 @@
 import sdl2.ext
-
 from context import MyContext
 from gamepart import SimpleScene
+from gamepart.gui import Console, GUISystem
 from gamepart.render import GfxRenderer
-from gamepart.gui import GUISystem, Console
 
 
 class MyBaseScene(SimpleScene):

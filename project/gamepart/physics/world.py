@@ -1,8 +1,8 @@
 import typing
 
 from ..subsystem import SubSystem
+from .physicalobject import AwareObject, CollisionObject, PhysicalObject
 from .utils import pymunk
-from .physicalobject import PhysicalObject, CollisionObject, AwareObject
 
 
 class World(SubSystem[PhysicalObject]):
@@ -10,7 +10,7 @@ class World(SubSystem[PhysicalObject]):
         super().__init__()
         self.speed = speed
         self.space = pymunk.Space()
-        self.shape_map: typing.Dict[pymunk.Shape, PhysicalObject] = {}
+        self.shape_map: dict[pymunk.Shape, PhysicalObject] = {}
 
     @staticmethod
     def accepts(obj: typing.Any) -> bool:

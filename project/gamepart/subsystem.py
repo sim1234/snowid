@@ -19,13 +19,13 @@ ST = typing.TypeVar("ST", bound=SubSystemObject)
 class SubSystem(SubSystemObject, typing.Generic[T]):
     def __init__(self):
         super().__init__()
-        self.objects: typing.List[T] = []  # TODO: Pre-split object types
+        self.objects: list[T] = []  # TODO: Pre-split object types
 
     @staticmethod
     def accepts(obj: typing.Any) -> bool:
         return isinstance(obj, SubSystemObject)
 
-    def get_objects(self, *types: typing.Type[ST]) -> typing.Generator[ST, None, None]:
+    def get_objects(self, *types: type[ST]) -> typing.Generator[ST, None, None]:
         for obj in self.objects:
             if isinstance(obj, types):
                 yield obj  # type: ignore
@@ -56,10 +56,8 @@ class SystemManager(SubSystem[SubSystem]):
     def accepts(obj: typing.Any) -> bool:
         return isinstance(obj, SubSystem)
 
-    def get_objects_all(
-        self, *types: typing.Type[ST]
-    ) -> typing.Generator[ST, None, None]:
-        seen: typing.Set[SubSystemObject] = set()
+    def get_objects_all(self, *types: type[ST]) -> typing.Generator[ST, None, None]:
+        seen: set[SubSystemObject] = set()
         for system in self.objects:
             for obj in system.get_objects(*types):
                 if obj not in seen:
@@ -77,13 +75,13 @@ class SystemManager(SubSystem[SubSystem]):
         return objects
 
     def remove_queued_all(self) -> typing.Iterable[SubSystemObject]:
-        all_objects: typing.Set[SubSystemObject] = set()
+        all_objects: set[SubSystemObject] = set()
         for system in self.objects:
             all_objects.update(system.remove_queued())
         return all_objects
 
     def clear_all(self) -> typing.Iterable[SubSystemObject]:
-        all_objects: typing.Set[SubSystemObject] = set()
+        all_objects: set[SubSystemObject] = set()
         for system in self.objects:
             all_objects.update(system.clear())
         return all_objects

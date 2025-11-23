@@ -1,10 +1,9 @@
-import typing
 import ctypes
 
 import sdl2
 
 
-def get_mouse_state() -> typing.Tuple[int, int, int]:
+def get_mouse_state() -> tuple[int, int, int]:
     """Returns current mouse x, y and button state"""
 
     x, y = ctypes.c_int(0), ctypes.c_int(0)

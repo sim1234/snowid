@@ -12,7 +12,7 @@ class Category:
             forced_index = Category.global_index
             Category.global_index *= 2
         self._index: int = int(forced_index)
-        assert 0 <= self._index <= pymunk.ShapeFilter.ALL_MASKS, self._index
+        assert 0 <= self._index <= pymunk.ShapeFilter.ALL_MASKS(), self._index
 
     def __int__(self) -> int:
         return self._index
@@ -45,11 +45,13 @@ class Category:
 
     def filter(
         self,
-        mask: typing.SupportsInt = pymunk.ShapeFilter.ALL_MASKS,
+        mask: typing.SupportsInt = None,
         group: typing.SupportsInt = 0,
     ) -> pymunk.ShapeFilter:
+        if mask is None:
+            mask = pymunk.ShapeFilter.ALL_MASKS()
         return pymunk.ShapeFilter(group, self._index, int(mask))
 
 
 cat_none = Category(0)
-cat_all = Category(pymunk.ShapeFilter.ALL_MASKS)
+cat_all = Category(pymunk.ShapeFilter.ALL_MASKS())

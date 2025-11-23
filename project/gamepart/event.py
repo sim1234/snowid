@@ -1,11 +1,10 @@
-import logging
 import ctypes
-import typing
 import itertools
+import logging
+import typing
 
 import sdl2
 import sdl2.ext
-
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +47,8 @@ class Dispatcher(typing.Generic[T, TD]):
     """Callback storage and dispatcher"""
 
     def __init__(self):
-        self.callbacks: typing.Dict[T, typing.List[typing.Callable]] = {}
-        self.chained: typing.List[typing.Callable] = []
+        self.callbacks: dict[T, list[typing.Callable]] = {}
+        self.chained: list[typing.Callable] = []
 
     def on(self, key: T, callback: typing.Callable):
         if key not in self.callbacks:
@@ -91,7 +90,7 @@ class EventDispatcher(Dispatcher[int, sdl2.SDL_Event]):
         return event.type
 
 
-class KeyEventDispatcher(Dispatcher[typing.Tuple[int, int], sdl2.SDL_KeyboardEvent]):
+class KeyEventDispatcher(Dispatcher[tuple[int, int], sdl2.SDL_KeyboardEvent]):
     """Dispatcher for keyboards event"""
 
     @staticmethod
@@ -105,9 +104,7 @@ class KeyEventDispatcher(Dispatcher[typing.Tuple[int, int], sdl2.SDL_KeyboardEve
         return self.on((sdl2.SDL_KEYDOWN, key), callback)
 
 
-class MouseEventDispatcher(
-    Dispatcher[typing.Tuple[int, int], sdl2.SDL_MouseButtonEvent]
-):
+class MouseEventDispatcher(Dispatcher[tuple[int, int], sdl2.SDL_MouseButtonEvent]):
     """Dispatcher for mouse button event"""
 
     @staticmethod

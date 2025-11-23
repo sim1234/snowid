@@ -1,8 +1,7 @@
 import typing
 
 import sdl2.ext
-
-from gamepart.physics import pymunk, SimplePhysicalObject
+from gamepart.physics import SimplePhysicalObject, pymunk
 from gamepart.viewport import Line
 
 from .category import cat_terrain, cat_terrain_collide

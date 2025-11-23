@@ -1,7 +1,6 @@
 import sdl2.ext
-
-from gamepart.physics import pymunk, SimplePhysicalObject, typed_property
-from gamepart.viewport import ViewPort, Circle, TexturedObject
+from gamepart.physics import SimplePhysicalObject, pymunk, typed_property
+from gamepart.viewport import Circle, TexturedObject, ViewPort
 
 from .category import cat_enemy, cat_enemy_collide
 

@@ -1,11 +1,10 @@
 """Simple 2D game engine built on top of PySDL2"""
 
 from .game import Game
-from .scene import Scene, ExitScene, SimpleScene
-
+from .scene import ExitScene, Scene, SimpleScene
 
 version_info = (0, 0, 1, "")
-__version__ = "%d.%d.%d%s" % version_info
+__version__ = f"{version_info[0]}.{version_info[1]}.{version_info[2]}{version_info[3]}"
 __author__ = "Szymon Zmilczak"
 
 __all__ = ["Game", "Scene", "ExitScene", "SimpleScene"]

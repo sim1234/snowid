@@ -2,11 +2,11 @@ import ctypes
 import typing
 
 import sdl2
-import sdl2.sdlgfx
 import sdl2.ext
+import sdl2.sdlgfx
 from sdl2 import Sint16
 
-_t_circle = typing.Tuple[typing.SupportsInt, typing.SupportsInt, typing.SupportsInt]
+_t_circle = tuple[typing.SupportsInt, typing.SupportsInt, typing.SupportsInt]
 _t_circles = typing.Sequence[_t_circle]
 _t_anys = typing.Sequence[typing.Sequence[typing.SupportsInt]]
 
@@ -18,7 +18,7 @@ class GfxRenderer(sdl2.ext.Renderer):
     blendmode: int
 
     @property
-    def clip(self) -> typing.Tuple[int, int, int, int]:
+    def clip(self) -> tuple[int, int, int, int]:
         rect = sdl2.SDL_Rect()
         ret = sdl2.SDL_RenderGetClipRect(self.sdlrenderer, ctypes.byref(rect))
         if ret:
@@ -26,7 +26,7 @@ class GfxRenderer(sdl2.ext.Renderer):
         return rect.x, rect.y, rect.w, rect.h
 
     @clip.setter
-    def clip(self, value: typing.Tuple[int, int, int, int]):
+    def clip(self, value: tuple[int, int, int, int]):
         rect = sdl2.SDL_Rect(*value)
         ret = sdl2.SDL_RenderSetClipRect(self.sdlrenderer, ctypes.byref(rect))
         if ret:
@@ -38,7 +38,7 @@ class GfxRenderer(sdl2.ext.Renderer):
         color: sdl2.ext.Color = (0, 0, 0),
         *,
         gfx_fun: typing.Callable = lambda: None,
-        map_pos: typing.Callable = int
+        map_pos: typing.Callable = int,
     ):
         """Draws multiple shapes on the renderer using gfx_fun."""
         color = sdl2.ext.convert_to_color(color)
@@ -50,7 +50,7 @@ class GfxRenderer(sdl2.ext.Renderer):
                 color.r,
                 color.g,
                 color.b,
-                color.a
+                color.a,
             )
             if ret == -1:
                 raise sdl2.ext.SDLError()

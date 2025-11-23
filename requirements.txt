@@ -1,7 +1,0 @@
-PySDL2
-Ipython
-pymunk
-
-Black
-flake8
-mypy

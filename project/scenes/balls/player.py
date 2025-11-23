@@ -1,17 +1,17 @@
-import typing
+import math
 
 import sdl2.ext
-
-from gamepart.physics import pymunk, PhysicalObject, CollisionObject, AwareObject
-from gamepart.viewport import Polygon
-from gamepart.control import Input, Controller
+from gamepart.control import Controller, Input
+from gamepart.physics import AwareObject, CollisionObject, PhysicalObject, pymunk
 from gamepart.protocol import Protocol
+from gamepart.viewport import Polygon
+
 from .category import cat_player, cat_player_collide, cat_terrain
 
 
 class PlayerState(Protocol):
     # Dynamic
-    position: typing.Tuple[float, float] = (0.0, 0.0)
+    position: tuple[float, float] = (0.0, 0.0)
     # State
     jumps: int = 0
     last_shoot: float = 0.0
@@ -26,9 +26,9 @@ class PlayerState(Protocol):
 class Player(Polygon, CollisionObject, AwareObject):
     color = sdl2.ext.Color(0, 0, 255)
 
-    def __init__(self, position: typing.Tuple[float, float]):
+    def __init__(self, position: tuple[float, float]):
         self.state = PlayerState()
-        body = pymunk.Body(self.state.mass, pymunk.inf)
+        body = pymunk.Body(self.state.mass, math.inf)
         body.position = position
         self.head = pymunk.Circle(body, 40, (0, 20))
         self.head.filter = cat_player.filter(cat_player_collide)

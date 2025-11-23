@@ -2,13 +2,12 @@ import code
 import io
 import sys
 import time
-import typing
 
 import sdl2
 
 from ..utils import get_clipboard_text
-from .system import GUISystem
 from .guiobject import GUIObject
+from .system import GUISystem
 
 
 class BufferedConsole(code.InteractiveConsole):
@@ -40,8 +39,8 @@ class ConsoleService:
         self.input_buffer: str = ""
         self.input_buffer2: str = ""
         self.input_index: int = 0
-        self.history: typing.List[str] = []
-        self.history_index: typing.Optional[int] = None
+        self.history: list[str] = []
+        self.history_index: int | None = None
 
     def get_all_buffer(self):
         return self.get_buffer_start() + self.get_buffer_end()
@@ -61,27 +60,23 @@ class ConsoleService:
 
     def enter_text(self, text: str):
         self.exit_history()
-        self.input_buffer = "{}{}{}".format(
-            self.input_buffer[: self.input_index],
-            text,
-            self.input_buffer[self.input_index :],
-        )
+        before = self.input_buffer[: self.input_index]
+        after = self.input_buffer[self.input_index :]
+        self.input_buffer = f"{before}{text}{after}"
         self.input_index += len(text)
 
     def press_backspace(self, amount: int = 1):
         self.exit_history()
-        self.input_buffer = "{}{}".format(
-            self.input_buffer[: self.input_index][:-amount],
-            self.input_buffer[self.input_index :],
-        )
+        before = self.input_buffer[: self.input_index][:-amount]
+        after = self.input_buffer[self.input_index :]
+        self.input_buffer = f"{before}{after}"
         self.input_index = max(self.input_index - amount, 0)
 
     def press_delete(self, amount: int = 1):
         self.exit_history()
-        self.input_buffer = "{}{}".format(
-            self.input_buffer[: self.input_index],
-            self.input_buffer[self.input_index :][amount:],
-        )
+        before = self.input_buffer[: self.input_index]
+        after = self.input_buffer[self.input_index :][amount:]
+        self.input_buffer = f"{before}{after}"
         self.input_index = max(self.input_index, 0)
 
     def press_left(self, amount: int = 1):

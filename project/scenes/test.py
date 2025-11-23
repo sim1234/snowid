@@ -1,8 +1,7 @@
-import time
 import math
+import time
 
 import sdl2.ext
-
 from gamepart.render import GfxRenderer
 
 from .base import MyBaseScene

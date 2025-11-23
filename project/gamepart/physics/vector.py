@@ -1,10 +1,7 @@
 import math
 import typing
 
-
-VectorLike = typing.Union[
-    "Vector", typing.Tuple[typing.SupportsFloat, typing.SupportsFloat]
-]
+VectorLike = typing.Union["Vector", tuple[typing.SupportsFloat, typing.SupportsFloat]]
 
 
 class Vector:
@@ -158,7 +155,7 @@ class Vector:
         other = self.to(other)
         return self.r * other.r * math.sin(self.phi - other.phi)
 
-    def decompose(self, phi: float) -> typing.Tuple["Vector", "Vector"]:
+    def decompose(self, phi: float) -> tuple["Vector", "Vector"]:
         """Decompose vector into orthogonal vectors, first with angle phi"""
         n = self.polar(1, phi)
         parallel = n * (self @ n)

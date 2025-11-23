@@ -1,14 +1,15 @@
+import os
+
 import sdl2
 import sdl2.ext
-
 from gamepart.physics import World
 from gamepart.physics.vector import Vector
 from gamepart.render import GfxRenderer
-from gamepart.viewport import ViewPort, FlippedViewPort
+from gamepart.viewport import FlippedViewPort, ViewPort
 
 from ..base import MyBaseScene, MyContext
-from .line import BoundLine
 from .ball import Ball, TexturedBall
+from .line import BoundLine
 from .player import Player, PlayerController
 
 
@@ -48,7 +49,15 @@ class BallScene(MyBaseScene):
     def start(self, context: MyContext):
         self.system.clear_all()
         super().start(context)
-        tex = self.game.sprite_factory.from_image("resources/cube.png")
+        resources_path = os.path.join(
+            os.path.dirname(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            ),
+            "resources",
+        )
+        tex = self.game.sprite_factory.from_image(
+            os.path.join(resources_path, "cube.png")
+        )
         self.system.add_all(
             Ball(30, 20, (100, 100), (100, 100)),
             Ball(40, 30, (200, 200), (100, 100)),
@@ -81,7 +90,9 @@ class BallScene(MyBaseScene):
         click = self.viewport.to_world((event.button.x, event.button.y))
         p = Vector.to(self.last_click)
         v = Vector.to(click) - p
-        self.system.add_all(Ball(position=p, velocity=v * 4, radius=30, mass=20))
+        self.system.add_all(
+            Ball(position=tuple(p), velocity=tuple(v * 4), radius=30, mass=20)
+        )
 
     def delete_ball(self, event: sdl2.SDL_Event):
         pos = Vector.to(self.viewport.to_world((event.button.x, event.button.y)))

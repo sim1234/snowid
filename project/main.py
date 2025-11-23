@@ -1,6 +1,6 @@
 import logging
-import sys
 import os
+import sys
 
 
 def setup():
@@ -12,8 +12,10 @@ def setup():
     logging.info("Starting...")
 
     # PySDL2
-    project = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    os.environ.setdefault("PYSDL2_DLL_PATH", os.path.join(project, "lib"))
+    # On Windows, set DLL path; on macOS/Linux, SDL2 should be installed system-wide
+    if sys.platform == "win32":
+        project = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        os.environ.setdefault("PYSDL2_DLL_PATH", os.path.join(project, "lib"))
     import sdl2
 
     logging.info("Python %s", sys.version)

@@ -12,7 +12,7 @@ TO = typing.TypeVar("TO")
 
 
 class Controller(typing.Generic[T, TO]):
-    input_class: typing.Type[T]
+    input_class: type[T]
 
     def __init__(self, obj: TO):
         self.last_input: T = self.init_input()
