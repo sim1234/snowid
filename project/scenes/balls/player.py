@@ -1,4 +1,5 @@
 import math
+import typing
 
 import sdl2.ext
 from gamepart.control import Controller, Input
@@ -26,7 +27,7 @@ class PlayerState(Protocol):
 class Player(Polygon, CollisionObject, AwareObject):
     color = sdl2.ext.Color(0, 0, 255)
 
-    def __init__(self, position: tuple[float, float]):
+    def __init__(self, position: tuple[float, float]) -> None:
         self.state = PlayerState()
         body = pymunk.Body(self.state.mass, math.inf)
         body.position = position
@@ -42,19 +43,35 @@ class Player(Polygon, CollisionObject, AwareObject):
         super().__init__(body, [self.head, self.feet], cat_player)
 
     @property
-    def points(self):
+    def points(self) -> typing.Iterable[tuple[float, float]]:
         px, py = self.position
         yield (px - 40, py + 60)
         yield (px + 40, py + 60)
         yield (px + 40, py - 60)
         yield (px - 40, py - 60)
 
-    def tick(self, delta: float):
+    @points.setter
+    def points(self, value: typing.Iterable[tuple[float, float]]) -> None:
+        raise NotImplementedError()
+
+    @property
+    def angle(self) -> float:
+        if self.body is None:
+            return 0.0
+        return self.body.angle
+
+    @angle.setter
+    def angle(self, value: float) -> None:
+        raise NotImplementedError()
+
+    def tick(self, delta: float) -> None:
         self.on_ground = False
 
-    def collide(self, arbiter: pymunk.Arbiter, other: "PhysicalObject"):
+    def collide(self, arbiter: pymunk.Arbiter, other: "PhysicalObject") -> bool:
         if cat_terrain in other.category and arbiter.contact_point_set.normal.y < -0.1:
             self.on_ground = True
+            return True
+        return False
 
 
 class PlayerInput(Input):
@@ -67,7 +84,9 @@ class PlayerInput(Input):
 class PlayerController(Controller[PlayerInput, Player]):
     input_class = PlayerInput
 
-    def act(self, game_time: float, delta: float):
+    def act(self, game_time: float, delta: float) -> None:
+        if self.object.body is None:
+            return
         mass = self.object.body.mass
         feet_vx: float = 0
         feet_vy: float = 0

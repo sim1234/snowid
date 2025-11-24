@@ -2,7 +2,7 @@ import typing
 
 from ..subsystem import SubSystemObject
 from .category import Category, cat_none
-from .utils import pymunk, typed_property
+from .utils import pymunk
 
 
 class PhysicalObject(SubSystemObject):
@@ -13,12 +13,14 @@ class PhysicalObject(SubSystemObject):
         category: Category = cat_none,
     ):
         super().__init__()
-        self.body: pymunk.Body = body
+        self.body: pymunk.Body | None = body
         self.shapes = list(shapes)
         self.category = category
 
-    @typed_property(tuple[float, float])
+    @property
     def position(self) -> tuple[float, float]:
+        if self.body is None:
+            raise ValueError("Cannot get position: body is None")
         return self.body.position
 
     @property
@@ -50,4 +52,4 @@ class SimplePhysicalObject(PhysicalObject, typing.Generic[T]):
 
     @property
     def shape(self) -> T:
-        return self.shapes[0]
+        return typing.cast(T, self.shapes[0])

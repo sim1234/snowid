@@ -12,7 +12,7 @@ class BoundLine(Line, SimplePhysicalObject[pymunk.Segment]):
 
     def __init__(
         self, static_body: pymunk.Body, p1x: float, p1y: float, p2x: float, p2y: float
-    ):
+    ) -> None:
         shape = pymunk.Segment(static_body, (p1x, p1y), (p2x, p2y), 0.0)
         shape.filter = cat_terrain.filter(cat_terrain_collide)
         shape.elasticity = 1.0
@@ -20,8 +20,36 @@ class BoundLine(Line, SimplePhysicalObject[pymunk.Segment]):
         super().__init__(None, shape, cat_terrain)
 
     @property
-    def end_points(self):
+    def end_points(self) -> tuple[tuple[float, float], tuple[float, float]]:
         return self.shape.a, self.shape.b
+
+    @end_points.setter
+    def end_points(
+        self, value: tuple[tuple[float, float], tuple[float, float]]
+    ) -> None:
+        raise NotImplementedError()
+
+    @property
+    def position(self) -> tuple[float, float]:
+        # Return midpoint of the line segment
+        a, b = self.end_points
+        return ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
+
+    @position.setter
+    def position(self, value: tuple[float, float]) -> None:
+        raise NotImplementedError()
+
+    @property
+    def angle(self) -> float:
+        # Return angle of the line segment
+        a, b = self.end_points
+        import math
+
+        return math.atan2(b[1] - a[1], b[0] - a[0])
+
+    @angle.setter
+    def angle(self, value: float) -> None:
+        raise NotImplementedError()
 
     @classmethod
     def make_box(

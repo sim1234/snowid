@@ -11,19 +11,18 @@ class GraphicalObject(SubSystemObject):
     position: tuple[float, float]
     angle: float
 
-    def draw(self, vp: "ViewPort"):
+    def draw(self, vp: "ViewPort") -> None:
         raise NotImplementedError()
 
 
 class ComplexGraphicalObject(GraphicalObject):
-    position = (0, 0)
-    angle = 0
-
-    def __init__(self, objects: typing.Iterable[GraphicalObject] = ()):
+    def __init__(self, objects: typing.Iterable[GraphicalObject] = ()) -> None:
         super().__init__()
+        self.position: tuple[float, float] = (0, 0)
+        self.angle: float = 0.0
         self.objects = list(objects)
 
-    def draw(self, vp: "ViewPort"):
+    def draw(self, vp: "ViewPort") -> None:
         for obj in self.objects:
             obj.draw(vp)
 
@@ -32,7 +31,7 @@ class TexturedObject(GraphicalObject):
     texture: sdl2.ext.TextureSprite
     scale: float = 1.0
 
-    def draw(self, vp: "ViewPort"):
+    def draw(self, vp: "ViewPort") -> None:
         texture = self.texture
         w, h = texture.size
         w, h = vp.d_to_view(w) * self.scale, vp.d_to_view(h) * self.scale
@@ -48,14 +47,14 @@ class GFXObject(GraphicalObject):
 
 
 class Point(GFXObject):
-    def draw(self, vp: "ViewPort"):
+    def draw(self, vp: "ViewPort") -> None:
         vp.renderer.pixel([vp.to_view(self.position)], self.color)
 
 
 class Line(GFXObject):
     end_points: tuple[tuple[float, float], tuple[float, float]]
 
-    def draw(self, vp: "ViewPort"):
+    def draw(self, vp: "ViewPort") -> None:
         start, end = self.end_points
         sx, sy = vp.to_view(start)
         ex, ey = vp.to_view(end)
@@ -65,7 +64,7 @@ class Line(GFXObject):
 class Polygon(GFXObject):
     points: typing.Iterable[tuple[float, float]]
 
-    def draw(self, vp: "ViewPort"):
+    def draw(self, vp: "ViewPort") -> None:
         points = [vp.to_view(p) for p in self.points]
         vp.renderer.filled_polygon([points], self.color)
 
@@ -73,10 +72,11 @@ class Polygon(GFXObject):
 class Circle(GFXObject):
     radius: float
 
-    def draw(self, vp: "ViewPort"):
+    def draw(self, vp: "ViewPort") -> None:
         r = vp.d_to_view(self.radius)
         px, py = vp.to_view(self.position)
-        lx, ly = tuple((px, py) + Vector.polar(r, self.angle))
+        polar_vec = Vector.polar(r, self.angle)
+        lx, ly = px + polar_vec.x, py + polar_vec.y
         vp.renderer.filled_circle([(px, py, r)], self.color)
         vp.renderer.line([(px, py, lx, ly)], sdl2.ext.Color(0, 0, 0))
 

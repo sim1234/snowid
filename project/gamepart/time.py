@@ -25,7 +25,7 @@ class FPSCounter:
         sum_ = sum(self.history)
         return (len_ / sum_) if sum_ else 0.0
 
-    def target_fps(self, fps: float = 120, recent: int = None):
+    def target_fps(self, fps: float = 120, recent: int | None = None) -> None:
         if recent is None:
             recent = int(len(self.history) / 2**0.5)
         history = list(self.history)[-recent:]
@@ -39,7 +39,7 @@ class FPSCounter:
             fps = 1 / history[-1]
             logger.log(0, "FPS inhibition: %fms (%fms) FPS %f", sleep, actual, fps)
 
-    def clear(self):
+    def clear(self) -> None:
         self.last_frame = time.perf_counter()
         while self.history:
             self.history.pop()
@@ -73,5 +73,5 @@ class TimeFeeder:
         return sum(self.tick(0))
 
     @property
-    def lag(self):
+    def lag(self) -> float:
         return self.system_time - self.world_time

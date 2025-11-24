@@ -23,7 +23,7 @@ class Vector:
         return cls(args[0], args[1])
 
     @classmethod
-    def polar(cls, r, phi) -> "Vector":
+    def polar(cls, r: float, phi: float) -> "Vector":
         """Create vector from polar data"""
         v = cls(r)
         v.phi = phi
@@ -37,45 +37,46 @@ class Vector:
         self.y = y
         return self
 
-    def replace(self, other: VectorLike):
-        self.x = other[0]
-        self.y = other[1]
+    def replace(self, other: VectorLike) -> "Vector":
+        self.x = float(other[0])
+        self.y = float(other[1])
         return self
 
-    def __getitem__(self, item) -> float:
+    def __getitem__(self, item: int) -> float:
         if item == 0:
             return self.x
         if item == 1:
             return self.y
-        raise IndexError()
+        raise IndexError(f"Index {item} out of range for Vector")
 
-    def __setitem__(self, key, value: float):
+    def __setitem__(self, key: int, value: float) -> None:
         if key == 0:
             self.x = value
         elif key == 1:
             self.y = value
-        raise IndexError()
+        else:
+            raise IndexError(f"Index {key} out of range for Vector")
 
     def __add__(self, other: VectorLike) -> "Vector":
-        return self.__class__(self.x + other[0], self.y + other[1])
+        return self.__class__(self.x + float(other[0]), self.y + float(other[1]))
 
     def __iadd__(self, other: VectorLike) -> "Vector":
-        self.x += other[0]
-        self.y += other[1]
+        self.x += float(other[0])
+        self.y += float(other[1])
         return self
 
     __radd__ = __add__
 
     def __sub__(self, other: VectorLike) -> "Vector":
-        return self.__class__(self.x - other[0], self.y - other[1])
+        return self.__class__(self.x - float(other[0]), self.y - float(other[1]))
 
     def __isub__(self, other: VectorLike) -> "Vector":
-        self.x -= other[0]
-        self.y -= other[1]
+        self.x -= float(other[0])
+        self.y -= float(other[1])
         return self
 
-    def __rsub__(self, other: VectorLike):
-        return self.__class__(other[0] - self.y, other[1] - self.y)
+    def __rsub__(self, other: VectorLike) -> "Vector":
+        return self.__class__(float(other[0]) - self.x, float(other[1]) - self.y)
 
     def __mul__(self, other: float) -> "Vector":
         return self.__class__(self.x * other, self.y * other)
@@ -97,7 +98,7 @@ class Vector:
 
     def __matmul__(self, other: VectorLike) -> float:
         """Dot product"""
-        return self.x * other[0] + self.y * other[1]
+        return self.x * float(other[0]) + self.y * float(other[1])
 
     def __pos__(self):
         return self.copy()
@@ -108,8 +109,12 @@ class Vector:
     def __invert__(self) -> "Vector":
         return self.__class__(self.y, self.x)
 
-    def __eq__(self, other: VectorLike) -> bool:  # type: ignore
-        return self.x == other[0] and self.y == other[1]
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, (tuple, list)) and len(other) == 2:
+            return self.x == float(other[0]) and self.y == float(other[1])
+        if isinstance(other, Vector):
+            return self.x == other.x and self.y == other.y
+        return NotImplemented
 
     def __hash__(self) -> int:
         return hash((self.x, self.y))
@@ -162,11 +167,11 @@ class Vector:
         orthogonal = self - parallel
         return parallel, orthogonal
 
-    def normal(self):
+    def normal(self) -> "Vector":
         """Get normal of this vector"""
         r = self.r
         return self.__class__(self.x / r, self.y / r)
 
-    def tangent(self):
+    def tangent(self) -> "Vector":
         """Get vector rotated by 90 degrees counterclockwise"""
         return self.__class__(-self.y, self.x)

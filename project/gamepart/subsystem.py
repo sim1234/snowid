@@ -2,10 +2,10 @@ import typing
 
 
 class SubSystemObject:
-    def __init__(self):
+    def __init__(self) -> None:
         self._not_removed: bool = True
 
-    def remove(self):
+    def remove(self) -> None:
         self._not_removed = False
 
     def __bool__(self) -> bool:
@@ -17,7 +17,7 @@ ST = typing.TypeVar("ST", bound=SubSystemObject)
 
 
 class SubSystem(SubSystemObject, typing.Generic[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.objects: list[T] = []  # TODO: Pre-split object types
 
@@ -28,7 +28,7 @@ class SubSystem(SubSystemObject, typing.Generic[T]):
     def get_objects(self, *types: type[ST]) -> typing.Generator[ST, None, None]:
         for obj in self.objects:
             if isinstance(obj, types):
-                yield obj  # type: ignore
+                yield typing.cast(ST, obj)
 
     def add(self, *objects: T) -> typing.Iterable[T]:
         for obj in objects:
@@ -36,7 +36,7 @@ class SubSystem(SubSystemObject, typing.Generic[T]):
         self.objects.extend(objects)
         return objects
 
-    def remove(self, *objects: T) -> typing.Iterable[T]:
+    def remove(self, *objects: T) -> typing.Iterable[T]:  # type: ignore[override]
         for obj in objects:
             self.objects.remove(obj)
         return objects
@@ -47,7 +47,7 @@ class SubSystem(SubSystemObject, typing.Generic[T]):
     def clear(self) -> typing.Iterable[T]:
         return self.remove(*self.objects)
 
-    def __del__(self):
+    def __del__(self) -> None:
         self.clear()
 
 

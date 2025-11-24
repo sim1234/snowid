@@ -24,18 +24,18 @@ class World(SubSystem[PhysicalObject]):
                 self.shape_map[shape] = obj
         return objects
 
-    def remove(self, *objects: PhysicalObject) -> typing.Iterable[PhysicalObject]:
+    def remove(self, *objects: PhysicalObject) -> typing.Iterable[PhysicalObject]:  # type: ignore[override]
         for obj in objects:
             self.space.remove(*obj.bodies, *obj.shapes)
             for shape in obj.shapes:
                 del self.shape_map[shape]
         return super().remove(*objects)
 
-    def _collide(self, arbiter: pymunk.Arbiter, obj: CollisionObject):
+    def _collide(self, arbiter: pymunk.Arbiter, obj: CollisionObject) -> None:
         other = self.shape_map[arbiter.shapes[1]]
-        return obj.collide(arbiter, other)
+        obj.collide(arbiter, other)
 
-    def tick(self, delta: float):
+    def tick(self, delta: float) -> None:
         self.space.step(delta * self.speed)
         for a_obj in self.get_objects(AwareObject):
             a_obj.tick(delta)

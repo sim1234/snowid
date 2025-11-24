@@ -7,7 +7,7 @@ class Category:
     global_index = 1
     __slots__ = ("_index",)
 
-    def __init__(self, forced_index: typing.SupportsInt = None):
+    def __init__(self, forced_index: typing.SupportsInt | None = None):
         if forced_index is None:
             forced_index = Category.global_index
             Category.global_index *= 2
@@ -20,7 +20,7 @@ class Category:
     def __bool__(self) -> bool:
         return self._index == 0
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({bin(self._index)})"
 
     def __or__(self, other: typing.SupportsInt) -> "Category":
@@ -45,12 +45,12 @@ class Category:
 
     def filter(
         self,
-        mask: typing.SupportsInt = None,
+        mask: typing.SupportsInt | None = None,
         group: typing.SupportsInt = 0,
     ) -> pymunk.ShapeFilter:
         if mask is None:
             mask = pymunk.ShapeFilter.ALL_MASKS()
-        return pymunk.ShapeFilter(group, self._index, int(mask))
+        return pymunk.ShapeFilter(int(group), self._index, int(mask))
 
 
 cat_none = Category(0)

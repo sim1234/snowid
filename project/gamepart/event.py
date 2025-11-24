@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class UserEventType:
     """Factory for custom sdl2 event types"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.type: int = sdl2.SDL_RegisterEvents(1)
         logger.debug(f"New event type {self!r}")
 
@@ -35,7 +35,7 @@ class UserEventType:
             obj = ctypes.cast(event.user.data1, ctypes.POINTER(ctypes.py_object))
             return obj.contents.value
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.type!r})"
 
 
@@ -46,39 +46,39 @@ TD = typing.TypeVar("TD")
 class Dispatcher(typing.Generic[T, TD]):
     """Callback storage and dispatcher"""
 
-    def __init__(self):
-        self.callbacks: dict[T, list[typing.Callable]] = {}
-        self.chained: list[typing.Callable] = []
+    def __init__(self) -> None:
+        self.callbacks: dict[T, list[typing.Callable[..., typing.Any]]] = {}
+        self.chained: list[typing.Callable[..., typing.Any]] = []
 
-    def on(self, key: T, callback: typing.Callable):
+    def on(self, key: T, callback: typing.Callable[..., typing.Any]) -> None:
         if key not in self.callbacks:
             self.callbacks[key] = []
         self.callbacks[key].append(callback)
 
-    def chain(self, callback: typing.Callable):
+    def chain(self, callback: typing.Callable[..., typing.Any]) -> None:
         self.chained.append(callback)
 
     @staticmethod
     def get_key(data: TD) -> T:
         return data  # type: ignore
 
-    def __call__(self, data: TD, *args, **kwargs):
+    def __call__(self, data: TD, *args: typing.Any, **kwargs: typing.Any) -> typing.Any:
         key = self.get_key(data)
         for callback in itertools.chain(self.callbacks.get(key, []), self.chained):
             ret = callback(data, *args, **kwargs)
             if ret:  # Stop event propagation
                 return ret
+        return None
 
-    def clear(self):
+    def clear(self) -> None:
         self.callbacks.clear()
         self.chained.clear()
 
-    def noop(self, *args, **kwargs):
+    def noop(self, *args: typing.Any, **kwargs: typing.Any) -> None:
         """Do nothing"""
 
-    def stop(self, *args, **kwargs):
+    def stop(self, *args: typing.Any, **kwargs: typing.Any) -> bool:
         """Stop event propagation"""
-
         return True
 
 
@@ -86,7 +86,7 @@ class EventDispatcher(Dispatcher[int, sdl2.SDL_Event]):
     """Dispatcher for SDL_Events"""
 
     @staticmethod
-    def get_key(event: sdl2.SDL_Event):
+    def get_key(event: sdl2.SDL_Event) -> int:
         return event.type
 
 
@@ -94,25 +94,29 @@ class KeyEventDispatcher(Dispatcher[tuple[int, int], sdl2.SDL_KeyboardEvent]):
     """Dispatcher for keyboards event"""
 
     @staticmethod
-    def get_key(event: sdl2.SDL_KeyboardEvent):
+    def get_key(event: sdl2.SDL_KeyboardEvent) -> tuple[int, int]:
         return event.type, event.key.keysym.sym
 
-    def on_up(self, key: sdl2.SDL_Keycode, callback: typing.Callable):
-        return self.on((sdl2.SDL_KEYUP, key), callback)
+    def on_up(
+        self, key: sdl2.SDL_Keycode, callback: typing.Callable[..., typing.Any]
+    ) -> None:
+        self.on((sdl2.SDL_KEYUP, key), callback)
 
-    def on_down(self, key: sdl2.SDL_Keycode, callback: typing.Callable):
-        return self.on((sdl2.SDL_KEYDOWN, key), callback)
+    def on_down(
+        self, key: sdl2.SDL_Keycode, callback: typing.Callable[..., typing.Any]
+    ) -> None:
+        self.on((sdl2.SDL_KEYDOWN, key), callback)
 
 
 class MouseEventDispatcher(Dispatcher[tuple[int, int], sdl2.SDL_MouseButtonEvent]):
     """Dispatcher for mouse button event"""
 
     @staticmethod
-    def get_key(event: sdl2.SDL_MouseButtonEvent):
+    def get_key(event: sdl2.SDL_MouseButtonEvent) -> tuple[int, int]:
         return event.type, event.button.button
 
-    def on_up(self, key: int, callback: typing.Callable):
-        return self.on((sdl2.SDL_MOUSEBUTTONUP, key), callback)
+    def on_up(self, key: int, callback: typing.Callable[..., typing.Any]) -> None:
+        self.on((sdl2.SDL_MOUSEBUTTONUP, key), callback)
 
-    def on_down(self, key: int, callback: typing.Callable):
-        return self.on((sdl2.SDL_MOUSEBUTTONDOWN, key), callback)
+    def on_down(self, key: int, callback: typing.Callable[..., typing.Any]) -> None:
+        self.on((sdl2.SDL_MOUSEBUTTONDOWN, key), callback)

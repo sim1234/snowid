@@ -3,6 +3,7 @@ import gc
 import logging
 import sys
 import time
+import typing
 
 import sdl2
 import sdl2.ext
@@ -20,11 +21,11 @@ class Game:
 
     context_class: type[Context] = Context
 
-    def __init__(self):
+    def __init__(self) -> None:
         logger.debug("Starting")
         self.init()
 
-        self.config: dict = self.get_config()
+        self.config: dict[str, typing.Any] = self.get_config()
         self.width: int = self.config["width"]
         self.height: int = self.config["height"]
         self.max_fps: float = self.config["max_fps"]
@@ -35,10 +36,10 @@ class Game:
         self.time_speed: float = self.config["time_speed"]
         self.time_max_iter: int = self.config["time_max_iter"]
 
-        self.window: sdl2.ext.Window = None
-        self.renderer: GfxRenderer = None
-        self.sprite_factory: sdl2.ext.SpriteFactory = None
-        self.font_manager: sdl2.ext.FontManager = None
+        self.window: sdl2.ext.Window | None = None
+        self.renderer: GfxRenderer | None = None
+        self.sprite_factory: sdl2.ext.SpriteFactory | None = None
+        self.font_manager: sdl2.ext.FontManager | None = None
         self.frame_num: int = 0
         self.init_display()
         self.init_renderer()
@@ -53,7 +54,7 @@ class Game:
         self.mouse_state: tuple[int, int, int] = get_mouse_state()
         self.running: bool = False
         self.scenes: dict[str, Scene] = {}
-        self.scene_switch_queue = collections.deque()
+        self.scene_switch_queue: collections.deque[Scene] = collections.deque()
         self.active_scene: Scene = self.add_exit_scene()
         self.context: Context = self.get_initial_context()
         self.logger.debug("Initializing scenes")
@@ -67,10 +68,10 @@ class Game:
     def logger(self) -> logging.Logger:
         return logger
 
-    def init(self):
+    def init(self) -> None:
         sdl2.ext.init()
 
-    def init_display(self):
+    def init_display(self) -> None:
         self.logger.debug("Initializing display")
         flags = None
         if self.fullscreen:
@@ -78,51 +79,62 @@ class Game:
         self.window = sdl2.ext.Window(
             self.caption, size=(self.width, self.height), flags=flags
         )
-        self.window.show()
+        if self.window is not None:
+            self.window.show()
 
-    def init_renderer(self):
+    def init_renderer(self) -> None:
         self.logger.debug("Initializing renderer")
         self.renderer = GfxRenderer(self.window)
         self.renderer.blendmode = sdl2.SDL_BLENDMODE_BLEND
         self.renderer.clip = (0, 0, self.width, self.height)
 
-    def init_sprite_factory(self):
+    def init_sprite_factory(self) -> None:
         self.logger.debug("Initializing sprite factory")
         self.sprite_factory = sdl2.ext.SpriteFactory(renderer=self.renderer)
 
-    def init_font_manager(self):
+    def init_font_manager(self) -> None:
         self.logger.warning("No FontManager initialized!")
 
-    def init_scenes(self):
+    def init_scenes(self) -> None:
         for scene in self.scenes.values():
             scene.init()
         self.active_scene.start(self.context)
 
-    def display_loading_screen(self):
-        if self.font_manager:
-            text = self.font_manager.render("Loading", size=24)
-            pos = (
-                int(self.width / 2.0 - text.w / 2.0),
-                int(self.height / 2 - text.h / 2.0),
-                text.w,
-                text.h,
-            )
-            text = self.sprite_factory.from_surface(text, True)
-            self.renderer.copy(text, None, pos)
-            self.renderer.present()
+    def display_loading_screen(self) -> None:
+        if (
+            self.font_manager is None
+            or self.sprite_factory is None
+            or self.renderer is None
+        ):
+            return
+        text = self.font_manager.render("Loading", size=24)
+        pos = (
+            int(self.width / 2.0 - text.w / 2.0),
+            int(self.height / 2 - text.h / 2.0),
+            text.w,
+            text.h,
+        )
+        text = self.sprite_factory.from_surface(text, True)
+        self.renderer.copy(text, None, pos)
+        self.renderer.present()
 
-    def display_fps(self):
+    def display_fps(self) -> None:
         fps = int(self.fps_counter.get_fps())
         logger.debug(f"FPS={fps}")
-        if self.font_manager:
-            text = self.font_manager.render(
-                f"{fps}", size=8, color=(200, 200, 50), bg_color=(10, 10, 10)
-            )
-            pos = (0, 0, text.w, text.h)
-            text = self.sprite_factory.from_surface(text, True)
-            self.renderer.copy(text, None, pos)
+        if (
+            self.font_manager is None
+            or self.sprite_factory is None
+            or self.renderer is None
+        ):
+            return
+        text = self.font_manager.render(
+            f"{fps}", size=8, color=(200, 200, 50), bg_color=(10, 10, 10)
+        )
+        pos = (0, 0, text.w, text.h)
+        text = self.sprite_factory.from_surface(text, True)
+        self.renderer.copy(text, None, pos)
 
-    def frame(self):
+    def frame(self) -> None:
         self.mouse_state = get_mouse_state()
         self.frame_num += 1
         if self.scene_switch_queue:
@@ -136,15 +148,18 @@ class Game:
         if self.show_fps:
             self.display_fps()
         self.fps_counter.target_fps(self.max_fps)
-        self.renderer.present()
+        if self.renderer is not None:
+            self.renderer.present()
 
-    def tick(self):
+    def tick(self) -> None:
         new_time = time.monotonic()
         for delta in self.feeder.tick(new_time - self.time_time, self.time_max_iter):
             self.active_scene.tick(delta)
         self.time_time = new_time
 
-    def add_scene(self, name: str, scene: type["Scene"], *args, **kwargs):
+    def add_scene(
+        self, name: str, scene: type["Scene"], *args: typing.Any, **kwargs: typing.Any
+    ) -> "Scene":
         logger.debug(f"Adding scene {scene.__name__}(name={name!r})")
         if name in self.scenes:
             raise ValueError(f"Scene with name {name!r} already exists")
@@ -152,11 +167,11 @@ class Game:
         self.scenes[name] = s
         return s
 
-    def queue_scene_switch(self, name: str):
+    def queue_scene_switch(self, name: str) -> None:
         logger.debug(f"Queuing scene change to {name!r}")
         self.scene_switch_queue.append(self.scenes[name])
 
-    def switch_scene(self, scene: "Scene"):
+    def switch_scene(self, scene: "Scene") -> None:
         logger.info(f"Changing scene from {self.active_scene.name!r} to {scene.name!r}")
         self.context = self.active_scene.stop()
         logger.debug("Context: %r", self.context)
@@ -164,20 +179,20 @@ class Game:
         self.active_scene = scene
         self.active_scene.start(self.context)
 
-    def stop(self):
+    def stop(self) -> None:
         logger.debug("Stopping")
         for scene in self.scenes.values():
             scene.uninit()
         sdl2.ext.quit()
 
-    def main_loop(self):
+    def main_loop(self) -> None:
         self.running = True
         while self.running:
             self.frame()
         self.stop()
         self.logger.info("Bye")
 
-    def wrapped_main_loop(self):
+    def wrapped_main_loop(self) -> None:
         try:
             self.main_loop()
             r = 0
@@ -207,13 +222,13 @@ class Game:
         return self.add_scene("exit", ExitScene)
 
     @property
-    def world_time(self):
+    def world_time(self) -> float:
         return self.feeder.world_time
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.caption!r})"
 
-    def init_heavy(self):
+    def init_heavy(self) -> None:
         """Initialize some heavy machinery"""
 
 

@@ -4,21 +4,21 @@ from ..subsystem import SubSystemObject
 
 
 class GUIObject(SubSystemObject):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.enabled: bool = True
         self.visible: bool = True
 
-    def draw(self, manager: "GUISystem"):
+    def draw(self, manager: "GUISystem") -> None:
         raise NotImplementedError()
 
-    def event(self, event: sdl2.SDL_Event):
+    def event(self, event: sdl2.SDL_Event) -> None:
         raise NotImplementedError()
 
-    def focus(self):
+    def focus(self) -> None:
         pass
 
-    def unfocus(self):
+    def unfocus(self) -> None:
         pass
 
 

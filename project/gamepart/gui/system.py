@@ -21,7 +21,7 @@ class GUISystem(SubSystem["GUIObject"]):
         self.sprite_factory = sprite_factory
         self.width = width
         self.height = height
-        self.focused_object: GUIObject = None
+        self.focused_object: GUIObject | None = None
 
     @staticmethod
     def accepts(obj: typing.Any) -> bool:

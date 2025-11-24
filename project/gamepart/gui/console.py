@@ -2,6 +2,7 @@ import code
 import io
 import sys
 import time
+import typing
 
 import sdl2
 
@@ -131,7 +132,7 @@ class ConsoleService:
 
 
 class Console(GUIObject):
-    def __init__(self, shell_locals: dict = None):
+    def __init__(self, shell_locals: dict[str, typing.Any] | None = None) -> None:
         super().__init__()
         locals_ = {"__name__": "__console__", "__doc__": None, "self": self}
         if shell_locals:

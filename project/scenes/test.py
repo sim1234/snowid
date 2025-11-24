@@ -1,5 +1,6 @@
 import math
 import time
+import typing
 
 import sdl2.ext
 from gamepart.render import GfxRenderer
@@ -8,13 +9,16 @@ from .base import MyBaseScene
 
 
 class TestScene(MyBaseScene):
-    def init(self):
+    def init(self) -> None:
         super().init()
-        self.key_event.on_up(sdl2.SDLK_COMMA, self.decrease_fps)
-        self.key_event.on_up(sdl2.SDLK_PERIOD, self.increase_fps)
-        self.key_event.on_up(sdl2.SDLK_F2, self.switch_to_balls)
+        if self.key_event is not None:
+            self.key_event.on_up(sdl2.SDLK_COMMA, self.decrease_fps)
+            self.key_event.on_up(sdl2.SDLK_PERIOD, self.increase_fps)
+            self.key_event.on_up(sdl2.SDLK_F2, self.switch_to_balls)
 
-    def every_frame(self, renderer: GfxRenderer):
+    def every_frame(self, renderer: GfxRenderer) -> None:
+        if self.game.renderer is None:
+            return
         self.game.renderer.clear((0, 0, 0, 255))
         # if random.random() > 0.9999:
         #     self.game.queue_scene_switch('test')
@@ -25,13 +29,13 @@ class TestScene(MyBaseScene):
         self.game.renderer.fill((x, y, 50, 50), (0, 255, 0, 255))
         super().every_frame(renderer)
 
-    def decrease_fps(self, _=None):
+    def decrease_fps(self, _: typing.Any = None) -> None:
         self.game.max_fps /= 2
         self.game.fps_counter.clear()
 
-    def increase_fps(self, _=None):
+    def increase_fps(self, _: typing.Any = None) -> None:
         self.game.max_fps *= 2
         self.game.fps_counter.clear()
 
-    def switch_to_balls(self, _=None):
+    def switch_to_balls(self, _: typing.Any = None) -> None:
         self.game.queue_scene_switch("balls")

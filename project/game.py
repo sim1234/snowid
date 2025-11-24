@@ -1,4 +1,5 @@
 import os
+import typing
 
 import sdl2
 import sdl2.ext
@@ -12,21 +13,23 @@ RESOURCES = os.path.join(ROOT, "resources")
 class MyGame(Game):
     context_class = MyContext
 
-    def get_config(self):
+    def get_config(self) -> dict[str, typing.Any]:
         config = super().get_config()
         config["max_fps"] = 120
         # config["fullscreen"] = True
         return config
 
-    def init_font_manager(self):
+    def init_font_manager(self) -> None:
         self.font_manager = sdl2.ext.FontManager(
             os.path.join(RESOURCES, "PixelFJVerdana12pt.ttf")
         )
 
-    def init_heavy(self):
+    def init_heavy(self) -> None:
+        if self.font_manager is None:
+            return
         self.font_manager.add(os.path.join(RESOURCES, "Hack-Regular.ttf"), "console")
 
-    def init_scenes(self):
+    def init_scenes(self) -> None:
         import scenes
 
         self.add_scene("test", scenes.TestScene)
