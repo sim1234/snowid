@@ -160,6 +160,8 @@ This project uses several tools to maintain code quality:
 - **Black**: Code formatter (line length: 88)
 - **mypy**: Static type checking
 - **Ruff**: Fast Python linter (replaces flake8)
+- **pytest**: Testing framework
+- **pytest-cov**: Coverage reporting
 
 **First, install dev dependencies:**
 ```bash

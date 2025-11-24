@@ -1,6 +1,6 @@
 import typing
 
-from .utils import pymunk
+import pymunk
 
 
 class Category:

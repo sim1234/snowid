@@ -1,8 +1,9 @@
 import typing
 
+import pymunk
+
 from ..subsystem import SubSystemObject
 from .category import Category, cat_none
-from .utils import pymunk
 
 
 class PhysicalObject(SubSystemObject):

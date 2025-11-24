@@ -15,6 +15,9 @@ dev = [
     "black",
     "ruff",
     "mypy",
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.11.0",
 ]
 
 [build-system]
@@ -51,5 +54,43 @@ select = ["E", "F", "W", "I", "N", "UP"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["project"]
+
+[tool.pytest.ini_options]
+testpaths = ["project/tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--cov=project",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+]
+markers = [
+    "unit: Unit tests (fast, no external dependencies)",
+    "integration: Integration tests (may require external dependencies)",
+    "slow: Slow running tests",
+]
+
+[tool.coverage.run]
+source = ["project"]
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+    "*/test_*.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]
 
 
