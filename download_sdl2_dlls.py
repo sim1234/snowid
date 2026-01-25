@@ -23,7 +23,9 @@ def download_file(url: str, dest_path: Path) -> None:
         print(f"  [OK] Downloaded to {dest_path.name}")
     except urllib.error.HTTPError as e:
         if e.code == 404:
-            raise FileNotFoundError(f"URL not found (404): {url}\nThe version may not exist. Please check available versions.")
+            raise FileNotFoundError(
+                f"URL not found (404): {url}\nThe version may not exist. Please check available versions."
+            )
         raise
 
 
@@ -49,26 +51,26 @@ def download_and_extract_dll(
 ) -> None:
     """Download a zip file, extract it, and copy the DLL to lib directory."""
     print(f"Downloading {component_name}...")
-    
+
     try:
         # Download zip file
         zip_path = temp_dir / f"{component_name}.zip"
         download_file(url, zip_path)
-        
+
         # Extract zip file
         extract_dir = temp_dir / component_name
         extract_dir.mkdir(exist_ok=True)
         print(f"  Extracting {zip_path.name}...")
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
             zip_ref.extractall(extract_dir)
-        
+
         # Find the DLL
         dll_path = find_dll_in_extracted(extract_dir, dll_name)
         if dll_path:
             dest_path = lib_dir / dll_name
             shutil.copy2(dll_path, dest_path)
             print(f"  [OK] Copied {dll_name}")
-            
+
             # For SDL2_image, also copy dependency DLLs from the same directory
             if component_name == "SDL2_image":
                 dll_dir = dll_path.parent
@@ -86,7 +88,9 @@ def download_and_extract_dll(
                 sys.exit(1)
     except (FileNotFoundError, urllib.error.HTTPError) as e:
         if optional:
-            print(f"  [WARN] Failed to download {component_name}: {e} - skipping (optional component)")
+            print(
+                f"  [WARN] Failed to download {component_name}: {e} - skipping (optional component)"
+            )
         else:
             print(f"  [ERROR] Failed to download {component_name}: {e}")
             sys.exit(1)
@@ -96,57 +100,55 @@ def main() -> None:
     """Main function to download all SDL2 DLLs."""
     lib_dir = Path("lib")
     lib_dir.mkdir(exist_ok=True)
-    
+
     print("Downloading SDL2 DLLs to lib folder...")
     print()
-    
+
     # SDL2 versions
     sdl2_version = "2.30.5"
     sdl2_url = f"https://github.com/libsdl-org/SDL/releases/download/release-{sdl2_version}/SDL2-devel-{sdl2_version}-VC.zip"
-    
+
     sdl2ttf_version = "2.22.0"
     sdl2ttf_url = f"https://github.com/libsdl-org/SDL_ttf/releases/download/release-{sdl2ttf_version}/SDL2_ttf-devel-{sdl2ttf_version}-VC.zip"
-    
+
     sdl2gfx_version = "1.0.4"
     # SDL2_gfx from giroletm fork (official libsdl-org doesn't have VC builds for this version)
     sdl2gfx_url = f"https://github.com/giroletm/SDL2_gfx/releases/download/release-{sdl2gfx_version}/SDL2_gfx-{sdl2gfx_version}-win32-x64.zip"
-    
+
     sdl2image_version = "2.8.2"
     sdl2image_url = f"https://github.com/libsdl-org/SDL_image/releases/download/release-{sdl2image_version}/SDL2_image-devel-{sdl2image_version}-VC.zip"
-    
+
     # Create temporary directory
     with tempfile.TemporaryDirectory(prefix="sdl2_dlls_") as temp_dir:
         temp_path = Path(temp_dir)
-        
+
         try:
             # Download and extract SDL2
-            download_and_extract_dll(
-                sdl2_url, "SDL2.dll", lib_dir, temp_path, "SDL2"
-            )
-            
+            download_and_extract_dll(sdl2_url, "SDL2.dll", lib_dir, temp_path, "SDL2")
+
             # Download and extract SDL2_ttf
             download_and_extract_dll(
                 sdl2ttf_url, "SDL2_ttf.dll", lib_dir, temp_path, "SDL2_ttf"
             )
-            
+
             # Download and extract SDL2_gfx (always overwrite)
             # Using giroletm fork which has VC builds
             download_and_extract_dll(
                 sdl2gfx_url, "SDL2_gfx.dll", lib_dir, temp_path, "SDL2_gfx"
             )
-            
+
             # Download and extract SDL2_image
             download_and_extract_dll(
                 sdl2image_url, "SDL2_image.dll", lib_dir, temp_path, "SDL2_image"
             )
-            
+
             print()
             print("[OK] Download complete! DLLs are in the lib folder:")
             for dll_file in sorted(lib_dir.glob("*.dll")):
                 size = dll_file.stat().st_size
                 size_mb = size / (1024 * 1024)
                 print(f"  - {dll_file.name} ({size_mb:.2f} MB)")
-                
+
         except Exception as e:
             print(f"[ERROR] Error downloading DLLs: {e}", file=sys.stderr)
             sys.exit(1)

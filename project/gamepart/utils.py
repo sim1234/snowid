@@ -19,5 +19,3 @@ def get_clipboard_text(encoding: str = "utf8") -> str:
         return data.decode(encoding)
     except UnicodeDecodeError:
         return ""
-    finally:
-        sdl2.SDL_free(data)

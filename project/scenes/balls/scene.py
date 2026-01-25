@@ -4,6 +4,7 @@ import typing
 import sdl2
 import sdl2.ext
 from gamepart.context import Context
+from gamepart.noise import PerlinNoise
 from gamepart.physics import World
 from gamepart.physics.vector import Vector
 from gamepart.render import GfxRenderer
@@ -11,7 +12,7 @@ from gamepart.viewport import FlippedViewPort, ViewPort
 
 from ..base import MyBaseScene
 from .ball import Ball, TexturedBall
-from .line import BoundLine
+from .chunk import TerrainChunkManager
 from .player import Player, PlayerController
 
 
@@ -25,6 +26,7 @@ class BallScene(MyBaseScene):
         self.last_click: tuple[float, float] = (0, 0)
         self.player: Player | None = None
         self.player_ctrl: PlayerController | None = None
+        self.terrain_chunk_manager: TerrainChunkManager | None = None
 
     def init(self) -> None:
         super().init()
@@ -40,6 +42,8 @@ class BallScene(MyBaseScene):
         )
         self.viewport.change_zoom(0.5)
         self.system.add(self.viewport)
+
+        self.noise = PerlinNoise(seed=42, octaves=4, persistence=0.5, scale=1000.0)
 
         if self.key_event is not None:
             self.key_event.on_up(sdl2.SDLK_F2, self.switch_to_test)
@@ -79,15 +83,13 @@ class BallScene(MyBaseScene):
                 TexturedBall(40, 30, (300, 300), (0, 0), texture=tex, scale=0.75),
                 self.player,
             )
-        self.system.add_all(
-            *BoundLine.make_box(
+
+            self.chunk_manager = TerrainChunkManager(
+                self.system,
                 self.world.space.static_body,
-                self.game.width - 3,
-                self.game.height - 2,
-                1,
-                2,
+                self.noise,
             )
-        )
+            self.chunk_manager.update(self.player.position)
 
     def change_zoom(self, event: sdl2.SDL_Event) -> None:
         if self.viewport is None:
@@ -138,13 +140,24 @@ class BallScene(MyBaseScene):
             self.player_ctrl.input.jump = True
 
     def tick(self, delta: float) -> None:
-        if self.player_ctrl is None or self.world is None:
+        if self.player_ctrl is None or self.world is None or self.player is None:
             return
         self.player_ctrl.input.left = bool(self.game.key_state[sdl2.SDL_SCANCODE_A])
         self.player_ctrl.input.right = bool(self.game.key_state[sdl2.SDL_SCANCODE_D])
         self.player_ctrl.input.shoot = bool(self.game.key_state[sdl2.SDL_SCANCODE_E])
         self.player_ctrl.control(self.game.world_time, delta)
         self.world.tick(delta)
+        if self.chunk_manager is not None:
+            self.chunk_manager.update(self.player.position)
+        self._update_camera(delta)
+
+    def _update_camera(self, delta: float) -> None:
+        if self.viewport is None or self.player is None:
+            return
+        self.viewport.follow_target(
+            self.player.position,
+            delta,
+        )
 
     def every_frame(self, renderer: GfxRenderer) -> None:
         if self.viewport is None:

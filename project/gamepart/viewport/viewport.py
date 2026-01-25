@@ -73,6 +73,46 @@ class ViewPort(SubSystem["GraphicalObject"]):
         self.y += (1 - 1 / change) * (pos[1] - self.y)
         self.zoom *= change
 
+    def follow_target(
+        self,
+        target_position: tuple[float, float],
+        delta: float,
+        edge_margin: float = 0.25,
+        smoothing_speed: float = 5.0,
+    ) -> tuple[float, float]:
+        """Smoothly move the viewport to keep target within safe zone.
+
+        Args:
+            target_position: World coordinates of the target to follow.
+            delta: Time delta for smooth interpolation.
+            edge_margin: Fraction of screen edge that triggers following (0.25 = 1/4).
+            smoothing_speed: Camera movement speed (higher = faster response).
+        """
+        smoothing = 1.0 - (0.5 ** (delta * smoothing_speed))
+
+        screen_pos = self.to_view(target_position)
+        margin_x = self.width * edge_margin
+        margin_y = self.height * edge_margin
+
+        offset_x = min(0.0, screen_pos[0] - margin_x) + max(
+            0.0, screen_pos[0] - (self.width - margin_x)
+        )
+        offset_y = min(0.0, screen_pos[1] - margin_y) + max(
+            0.0, screen_pos[1] - (self.height - margin_y)
+        )
+
+        x_offset_world = self.x_to_world(screen_pos[0]) - self.x_to_world(
+            screen_pos[0] - offset_x
+        )
+        y_offset_world = self.y_to_world(screen_pos[1]) - self.y_to_world(
+            screen_pos[1] - offset_y
+        )
+        diff_x = x_offset_world * smoothing
+        diff_y = y_offset_world * smoothing
+        self.x += diff_x
+        self.y += diff_y
+        return diff_x, diff_y
+
 
 class FlippedViewPort(ViewPort):
     def y_to_view(self, y: float) -> float:
