@@ -24,18 +24,24 @@ class PhysicalObject(SubSystemObject):
             raise ValueError("Cannot get position: body is None")
         return self.body.position
 
+    @position.setter
+    def position(self, value: tuple[float, float]) -> None:
+        if self.body is None:
+            raise ValueError("Cannot set position: body is None")
+        self.body.position = value
+
     @property
     def bodies(self) -> typing.Iterable[pymunk.Body]:
         return [self.body] if self.body else []
 
 
 class CollisionObject(PhysicalObject):
-    def collide(self, arbiter: pymunk.Arbiter, other: "PhysicalObject"):
+    def collide(self, arbiter: pymunk.Arbiter, other: "PhysicalObject") -> bool:
         raise NotImplementedError()
 
 
 class AwareObject(PhysicalObject):
-    def tick(self, delta: float):
+    def tick(self, delta: float) -> None:
         raise NotImplementedError()
 
 

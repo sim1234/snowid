@@ -14,7 +14,7 @@ class Vector:
         self.y = y
 
     @classmethod
-    def to(cls, *args) -> "Vector":
+    def to(cls, *args: typing.Any) -> "Vector":
         """Create Vector fom arbitrary data"""
         if not args or args[0] is None:
             return cls()
@@ -100,7 +100,7 @@ class Vector:
         """Dot product"""
         return self.x * float(other[0]) + self.y * float(other[1])
 
-    def __pos__(self):
+    def __pos__(self) -> "Vector":
         return self.copy()
 
     def __neg__(self) -> "Vector":
@@ -130,7 +130,7 @@ class Vector:
         return math.hypot(self.x, self.y)
 
     @r.setter
-    def r(self, value: float):
+    def r(self, value: float) -> None:
         phi = self.phi
         self.x = value * math.cos(phi)
         self.y = value * math.sin(phi)
@@ -140,7 +140,7 @@ class Vector:
         return math.atan2(self.y, self.x)
 
     @phi.setter
-    def phi(self, value: float):
+    def phi(self, value: float) -> None:
         r = self.r
         self.x = r * math.cos(value)
         self.y = r * math.sin(value)
@@ -175,3 +175,6 @@ class Vector:
     def tangent(self) -> "Vector":
         """Get vector rotated by 90 degrees counterclockwise"""
         return self.__class__(-self.y, self.x)
+
+    def to_tuple(self) -> tuple[float, float]:
+        return self.x, self.y

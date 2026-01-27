@@ -40,8 +40,8 @@ class Category:
     def __sub__(self, other: typing.SupportsInt) -> "Category":
         return Category(self._index & ~int(other))
 
-    def __contains__(self, item: typing.SupportsInt):
-        return self._index & int(item)
+    def __contains__(self, item: typing.SupportsInt) -> bool:
+        return bool(self._index & int(item))
 
     def filter(
         self,

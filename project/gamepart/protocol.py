@@ -7,7 +7,7 @@ class ProtocolMeta(type):
         name: str,
         bases: tuple[type, ...],
         dct: dict[str, typing.Any],
-    ):
+    ) -> "ProtocolMeta":
         defaults = sorted(
             [(key, value) for key, value in dct.items() if mcs.is_field(key, value)]
         )
@@ -21,7 +21,7 @@ class ProtocolMeta(type):
         return super().__new__(mcs, name, bases, dct)
 
     @staticmethod
-    def is_field(name, value):
+    def is_field(name: str, value: typing.Any) -> bool:
         return not (
             callable(value) or name.startswith("_") or isinstance(value, classmethod)
         )
@@ -32,21 +32,21 @@ class Protocol(metaclass=ProtocolMeta):
     _defaults: tuple[tuple[str, typing.Any]]
     _keys: tuple[str, ...]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.clear()
 
-    def update(self, data: typing.Iterable[typing.Any]):
+    def update(self, data: typing.Iterable[typing.Any]) -> None:
         for key, value in zip(self._keys, data):
             setattr(self, key, value)
 
-    def update_dict(self, data: dict[str, typing.Any]):
+    def update_dict(self, data: dict[str, typing.Any]) -> None:
         for key, value in data.items():
             setattr(self, key, value)
 
     def serialize(self) -> list[typing.Any]:
         return [getattr(self, key, default) for key, default in self._defaults]
 
-    def serialize_dict(self):
+    def serialize_dict(self) -> dict[str, typing.Any]:
         return {key: getattr(self, key, default) for key, default in self._defaults}
 
     @classmethod
@@ -61,13 +61,13 @@ class Protocol(metaclass=ProtocolMeta):
         instance.update_dict(data)
         return instance
 
-    def clear(self):
+    def clear(self) -> None:
         for key, default in self._defaults:
             setattr(self, key, default)
 
-    def copy(self, source: "Protocol"):
+    def copy(self, source: "Protocol") -> None:
         for key, default in self._defaults:
             setattr(self, key, getattr(source, key, default))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}<{self.serialize_dict()!r}>"

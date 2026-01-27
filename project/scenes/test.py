@@ -11,14 +11,11 @@ from .base import MyBaseScene
 class TestScene(MyBaseScene):
     def init(self) -> None:
         super().init()
-        if self.key_event is not None:
-            self.key_event.on_up(sdl2.SDLK_COMMA, self.decrease_fps)
-            self.key_event.on_up(sdl2.SDLK_PERIOD, self.increase_fps)
-            self.key_event.on_up(sdl2.SDLK_F2, self.switch_to_balls)
+        self.key_event.on_up(sdl2.SDLK_COMMA, self.decrease_fps)
+        self.key_event.on_up(sdl2.SDLK_PERIOD, self.increase_fps)
+        self.key_event.on_up(sdl2.SDLK_F2, self.switch_to_balls)
 
     def every_frame(self, renderer: GfxRenderer) -> None:
-        if self.game.renderer is None:
-            return
         self.game.renderer.clear((0, 0, 0, 255))
         # if random.random() > 0.9999:
         #     self.game.queue_scene_switch('test')

@@ -10,20 +10,29 @@ logger = logging.getLogger(__name__)
 
 
 class UserEventType:
-    """Factory for custom sdl2 event types"""
+    """Factory for custom SDL2 user events.
+
+    Each instance registers a unique event type that can be used to emit
+    custom events into the SDL event queue.
+    """
 
     def __init__(self) -> None:
         self.type: int = sdl2.SDL_RegisterEvents(1)
         logger.debug(f"New event type {self!r}")
 
     def emit(self, code: int = 0, data: typing.Any = None) -> sdl2.SDL_Event:
+        """Push a custom event to the SDL event queue."""
         event = sdl2.SDL_Event()
-        sdl2.SDL_memset(ctypes.byref(event), 0, ctypes.sizeof(sdl2.SDL_Event))
+        sdl2.SDL_memset(
+            ctypes.byref(event),  # type: ignore[arg-type]
+            0,
+            ctypes.sizeof(sdl2.SDL_Event),
+        )
         event.type = self.type
         event.user.code = code
         event.user.data1 = ctypes.cast(
             ctypes.pointer(ctypes.py_object(data)), ctypes.c_void_p
-        )
+        ).value
         if sdl2.SDL_PushEvent(event) != 1:
             raise sdl2.ext.SDLError()
         return event
@@ -39,84 +48,118 @@ class UserEventType:
         return f"{self.__class__.__name__}({self.type!r})"
 
 
-T = typing.TypeVar("T", bound=typing.Hashable)
-TD = typing.TypeVar("TD")
+KeyT = typing.TypeVar("KeyT", bound=typing.Hashable)
+DataT = typing.TypeVar("DataT")
 
 
-class Dispatcher(typing.Generic[T, TD]):
-    """Callback storage and dispatcher"""
+class Dispatcher(typing.Generic[KeyT, DataT]):
+    """Generic callback dispatcher with key-based routing and propagation control.
+
+    Callbacks are invoked in registration order. A callback returning a truthy
+    value stops propagation to subsequent callbacks.
+
+    KeyT: Hashable type used to route data to specific callbacks.
+    DataT: Type of data passed to callbacks when dispatching.
+    """
 
     def __init__(self) -> None:
-        self.callbacks: dict[T, list[typing.Callable[..., typing.Any]]] = {}
-        self.chained: list[typing.Callable[..., typing.Any]] = []
+        self.callbacks: dict[KeyT, list[typing.Callable[[DataT], typing.Any]]] = {}
+        self.chained: list[typing.Callable[[DataT], typing.Any]] = []
 
-    def on(self, key: T, callback: typing.Callable[..., typing.Any]) -> None:
+    def on(self, key: KeyT, callback: typing.Callable[[DataT], typing.Any]) -> None:
+        """Register a callback for a specific key."""
         if key not in self.callbacks:
             self.callbacks[key] = []
         self.callbacks[key].append(callback)
 
-    def chain(self, callback: typing.Callable[..., typing.Any]) -> None:
+    def chain(self, callback: typing.Callable[[DataT], typing.Any]) -> None:
+        """Register a callback that runs for all data, after keyed callbacks."""
         self.chained.append(callback)
 
     @staticmethod
-    def get_key(data: TD) -> T:
+    def get_key(data: DataT) -> KeyT:
+        """Extract the routing key from data. Override in subclasses."""
         return data  # type: ignore
 
-    def __call__(self, data: TD, *args: typing.Any, **kwargs: typing.Any) -> typing.Any:
+    def __call__(self, data: DataT) -> typing.Any:
+        """Dispatch data to matching callbacks. Returns first truthy callback result."""
         key = self.get_key(data)
         for callback in itertools.chain(self.callbacks.get(key, []), self.chained):
-            ret = callback(data, *args, **kwargs)
-            if ret:  # Stop event propagation
+            ret = callback(data)
+            if ret:
                 return ret
         return None
 
     def clear(self) -> None:
+        """Remove all registered callbacks."""
         self.callbacks.clear()
         self.chained.clear()
 
-    def noop(self, *args: typing.Any, **kwargs: typing.Any) -> None:
-        """Do nothing"""
+    def noop(self, data: DataT) -> None:
+        """Callback placeholder that does nothing."""
 
-    def stop(self, *args: typing.Any, **kwargs: typing.Any) -> bool:
-        """Stop event propagation"""
+    def stop(self, data: DataT) -> bool:
+        """Callback that stops event propagation."""
         return True
 
 
 class EventDispatcher(Dispatcher[int, sdl2.SDL_Event]):
-    """Dispatcher for SDL_Events"""
+    """Dispatcher routing SDL events by event type (e.g. SDL_KEYDOWN, SDL_QUIT)."""
 
     @staticmethod
     def get_key(event: sdl2.SDL_Event) -> int:
         return event.type
 
 
-class KeyEventDispatcher(Dispatcher[tuple[int, int], sdl2.SDL_KeyboardEvent]):
-    """Dispatcher for keyboards event"""
+class KeyEventDispatcher(Dispatcher[tuple[int, int], sdl2.SDL_Event]):
+    """Dispatcher routing keyboard events by (event_type, key_sym) tuple."""
 
     @staticmethod
-    def get_key(event: sdl2.SDL_KeyboardEvent) -> tuple[int, int]:
-        return event.type, event.key.keysym.sym
+    def get_key(event: sdl2.SDL_Event) -> tuple[int, int]:
+        sub_event: sdl2.SDL_KeyboardEvent = event.key
+        # TODO: make sure mypy picks this up
+        return event.type, sub_event.keysym.sym
+
+    def attach(self, dispatcher: EventDispatcher) -> None:
+        """Register this dispatcher as a handler for keyboard events."""
+        dispatcher.on(sdl2.SDL_KEYDOWN, self)
+        dispatcher.on(sdl2.SDL_KEYUP, self)
 
     def on_up(
-        self, key: sdl2.SDL_Keycode, callback: typing.Callable[..., typing.Any]
+        self, key: int, callback: typing.Callable[[sdl2.SDL_Event], typing.Any]
     ) -> None:
+        """Register a callback for key release events."""
         self.on((sdl2.SDL_KEYUP, key), callback)
 
     def on_down(
-        self, key: sdl2.SDL_Keycode, callback: typing.Callable[..., typing.Any]
+        self, key: int, callback: typing.Callable[[sdl2.SDL_Event], typing.Any]
     ) -> None:
+        """Register a callback for key press events."""
         self.on((sdl2.SDL_KEYDOWN, key), callback)
 
 
-class MouseEventDispatcher(Dispatcher[tuple[int, int], sdl2.SDL_MouseButtonEvent]):
-    """Dispatcher for mouse button event"""
+class MouseEventDispatcher(Dispatcher[tuple[int, int], sdl2.SDL_Event]):
+    """Dispatcher routing mouse button events by (event_type, button) tuple."""
 
     @staticmethod
-    def get_key(event: sdl2.SDL_MouseButtonEvent) -> tuple[int, int]:
-        return event.type, event.button.button
+    def get_key(event: sdl2.SDL_Event) -> tuple[int, int]:
+        sub_event: sdl2.SDL_MouseButtonEvent = event.button
+        # TODO: make sure mypy picks this up
+        return event.type, sub_event.button
 
-    def on_up(self, key: int, callback: typing.Callable[..., typing.Any]) -> None:
+    def attach(self, dispatcher: EventDispatcher) -> None:
+        """Register this dispatcher as a handler for mouse button events."""
+        dispatcher.on(sdl2.SDL_MOUSEBUTTONDOWN, self)
+        dispatcher.on(sdl2.SDL_MOUSEBUTTONUP, self)
+
+    def on_up(
+        self, key: int, callback: typing.Callable[[sdl2.SDL_Event], typing.Any]
+    ) -> None:
+        """Register a callback for mouse button release events."""
         self.on((sdl2.SDL_MOUSEBUTTONUP, key), callback)
 
-    def on_down(self, key: int, callback: typing.Callable[..., typing.Any]) -> None:
+    def on_down(
+        self, key: int, callback: typing.Callable[[sdl2.SDL_Event], typing.Any]
+    ) -> None:
+        """Register a callback for mouse button press events."""
         self.on((sdl2.SDL_MOUSEBUTTONDOWN, key), callback)

@@ -13,7 +13,9 @@ from .render import GfxRenderer
 class Scene:
     """Scene base"""
 
-    def __init__(self, game: "Game", name: str, *args, **kwargs):
+    def __init__(
+        self, game: "Game", name: str, *args: typing.Any, **kwargs: typing.Any
+    ) -> None:
         self.game: Game = game
         self.name: str = name
         self.args = args
@@ -52,7 +54,7 @@ class Scene:
 class ExitScene(Scene):
     """Scene quitting the game"""
 
-    def frame(self):
+    def frame(self) -> None:
         self.game.running = False
 
 
@@ -61,38 +63,31 @@ class SimpleScene(Scene):
 
     def __init__(self, *args: typing.Any, **kwargs: typing.Any) -> None:
         super().__init__(*args, **kwargs)
-        self.system: SystemManager | None = None
-        self._event_dispatcher: EventDispatcher | None = (
-            None  # Internal event dispatcher
-        )
-        self.key_event: KeyEventDispatcher | None = None
-        self.mouse_event: MouseEventDispatcher | None = None
-
-    def event(self, event: sdl2.SDL_Event) -> None:  # type: ignore[override]
-        """Handle event via dispatcher"""
-        if self._event_dispatcher is not None:
-            self._event_dispatcher(event)
+        self.system: SystemManager
+        self.event_dispatcher: EventDispatcher
+        self.key_event: KeyEventDispatcher
+        self.mouse_event: MouseEventDispatcher
+        self.is_first_frame: bool
 
     def init(self) -> None:
         super().init()
         self.system = SystemManager()
-        self._event_dispatcher = EventDispatcher()
+        self.event_dispatcher = EventDispatcher()
         self.key_event = KeyEventDispatcher()
         self.mouse_event = MouseEventDispatcher()
-        if self._event_dispatcher is not None:
-            self._event_dispatcher.on(sdl2.SDL_QUIT, self.on_exit)
-            self._event_dispatcher.on(sdl2.SDL_KEYDOWN, self.key_event)
-            self._event_dispatcher.on(sdl2.SDL_KEYUP, self.key_event)
-            self._event_dispatcher.on(sdl2.SDL_MOUSEBUTTONDOWN, self.mouse_event)
-            self._event_dispatcher.on(sdl2.SDL_MOUSEBUTTONUP, self.mouse_event)
+        self.mouse_event.attach(self.event_dispatcher)
+        self.key_event.attach(self.event_dispatcher)
+        self.event_dispatcher.on(sdl2.SDL_QUIT, lambda _: self.exit())
+
+    def event(self, event: sdl2.SDL_Event) -> None:
+        """Handle event via dispatcher"""
+        self.event_dispatcher(event)
 
     def start(self, context: Context) -> None:
         self.is_first_frame = True
         super().start(context)
 
     def frame(self) -> None:
-        if self.system is None or self.game.renderer is None:
-            return
         self.system.remove_queued_all()
         if self.is_first_frame:
             self.first_frame(self.game.renderer)
@@ -100,20 +95,12 @@ class SimpleScene(Scene):
         self.every_frame(self.game.renderer)
 
     def uninit(self) -> None:
-        if self._event_dispatcher is not None:
-            self._event_dispatcher.clear()
-        if self.key_event is not None:
-            self.key_event.clear()
-        if self.mouse_event is not None:
-            self.mouse_event.clear()
-        if self.system is not None:
-            self.system.clear_all()
-            self.system.clear()
+        self.event_dispatcher.clear()
+        self.key_event.clear()
+        self.mouse_event.clear()
+        self.system.clear_all()
+        self.system.clear()
         super().uninit()
-
-    def on_exit(self, _: sdl2.SDL_Event) -> None:
-        """Handle exit event"""
-        self.exit()
 
     def exit(self) -> None:
         """Exit the game"""

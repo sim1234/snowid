@@ -18,9 +18,9 @@ def get_font(size: int) -> sdl2.sdlttf.TTF_Font:
 def render_font(
     font: sdl2.sdlttf.TTF_Font,
     text: str,
-    color: sdl2.SDL_Color = None,
-    bg_color: sdl2.SDL_Color = None,
-):
+    color: sdl2.SDL_Color | None = None,
+    bg_color: sdl2.SDL_Color | None = None,
+) -> sdl2.SDL_Surface:
     text_b = bytes(text, "utf-8")
     if color is None:
         color = sdl2.SDL_Color(255, 255, 255)

@@ -23,16 +23,16 @@ class Controller(typing.Generic[T, TO]):
     def init_input(cls) -> T:
         return cls.input_class()
 
-    def control(self, game_time: float, delta: float):
+    def control(self, game_time: float, delta: float) -> None:
         self.act(game_time, delta)
         self.last_input.copy(self.input)
         self.input.clear()
 
-    def act(self, game_time: float, delta: float):
+    def act(self, game_time: float, delta: float) -> None:
         raise NotImplementedError()
 
-    def setter(self, attribute: str, value: typing.Any) -> typing.Callable:
-        def callback(*args, **kwargs):
+    def setter(self, attribute: str, value: typing.Any) -> typing.Callable[..., None]:
+        def callback(*args: typing.Any, **kwargs: typing.Any) -> None:
             setattr(self.input, attribute, value)
 
         return callback

@@ -63,7 +63,12 @@ sudo apt-get install libsdl2-dev libsdl2-gfx-dev libsdl2-ttf-dev libsdl2-image-d
 ```
 
 **Windows:**
-SDL2 DLL files should be placed in the `lib/` directory. The project includes `SDL2_gfx.dll` as an example. You'll need to download SDL2, SDL2_gfx, SDL2_ttf, and SDL2_image DLLs and place them in the `lib/` directory.
+SDL2 DLL files should be placed in the `lib/` directory. You can download them automatically:
+```bash
+make download-dlls
+# or
+uv run python download_sdl2_dlls.py
+```
 
 ## Installation
 
@@ -136,6 +141,7 @@ uv run python -m project.shell
 ```
 snowid/
 ├── lib/                    # SDL2 DLL files (Windows)
+├── stubs/                  # Generated type stubs for sdl2 (not committed)
 ├── project/                # Main application code
 │   ├── gamepart/          # Core game engine framework
 │   │   ├── gui/           # GUI system components
@@ -146,6 +152,8 @@ snowid/
 │   ├── resources/         # Game assets (fonts, images)
 │   ├── main.py            # Entry point
 │   └── game.py            # Main game class
+├── generate_stubs.py      # Script to generate sdl2 type stubs
+├── download_sdl2_dlls.py  # Script to download SDL2 DLLs (Windows)
 ├── pyproject.toml         # Project configuration and dependencies
 ├── mypy.ini               # Type checking configuration
 └── README.md              # This file
@@ -195,6 +203,18 @@ uv run ruff check --select I --fix project/
 # Run all checks (format check, type check, lint)
 uv run black --check project/ && uv run mypy project/ && uv run ruff check project/
 ```
+
+### Generating Type Stubs
+
+The project uses custom type stubs for the sdl2 module to enable better type checking. The stubs are generated and not committed to the repository. To generate them:
+
+```bash
+make stubs
+# or
+uv run python generate_stubs.py
+```
+
+This generates type stubs in the `stubs/` directory with proper types for SDL2 structures and functions.
 
 ### Adding Dependencies
 

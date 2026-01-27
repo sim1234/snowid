@@ -8,7 +8,10 @@ logging.info("pymunk %s with chipmunk %s", pymunk.version, pymunk.chipmunk_versi
 
 
 def make_body(
-    mass: float = 0, moment: float = 0, body_type: int = pymunk.Body.DYNAMIC, **kwargs
+    mass: float = 0,
+    moment: float = 0,
+    body_type: int = pymunk.Body.DYNAMIC,
+    **kwargs: typing.Any,
 ) -> pymunk.Body:
     body = pymunk.Body(mass, moment, body_type)
     for key, value in kwargs.items():
@@ -16,15 +19,15 @@ def make_body(
     return body
 
 
-def update_shape(shape: pymunk.Shape, **kwargs) -> pymunk.Shape:
+def update_shape(shape: pymunk.Shape, **kwargs: typing.Any) -> pymunk.Shape:
     for key, value in kwargs.items():
         setattr(shape, key, value)
     return shape
 
 
-def typed_property(rtype: type) -> typing.Callable:
+def typed_property(rtype: type) -> typing.Callable[..., property]:
     @functools.wraps(property)
-    def prop(*args, **kwargs):
+    def prop(*args: typing.Any, **kwargs: typing.Any) -> property:
         return property(*args, **kwargs)
 
     prop.__annotations__["return"] = rtype

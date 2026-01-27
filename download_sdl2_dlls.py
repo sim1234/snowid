@@ -5,7 +5,6 @@ Downloads SDL2, SDL2_ttf, SDL2_gfx, and SDL2_image DLLs to the lib folder
 Uses only Python standard library
 """
 
-import os
 import shutil
 import sys
 import tempfile
@@ -24,7 +23,7 @@ def download_file(url: str, dest_path: Path) -> None:
     except urllib.error.HTTPError as e:
         if e.code == 404:
             raise FileNotFoundError(
-                f"URL not found (404): {url}\nThe version may not exist. Please check available versions."
+                f"URL not found (404): {url}\nThe version may not exist."
             )
         raise
 
@@ -88,9 +87,7 @@ def download_and_extract_dll(
                 sys.exit(1)
     except (FileNotFoundError, urllib.error.HTTPError) as e:
         if optional:
-            print(
-                f"  [WARN] Failed to download {component_name}: {e} - skipping (optional component)"
-            )
+            print(f"  [WARN] Failed to download {component_name}: {e} - skipping")
         else:
             print(f"  [ERROR] Failed to download {component_name}: {e}")
             sys.exit(1)
@@ -106,17 +103,29 @@ def main() -> None:
 
     # SDL2 versions
     sdl2_version = "2.30.5"
-    sdl2_url = f"https://github.com/libsdl-org/SDL/releases/download/release-{sdl2_version}/SDL2-devel-{sdl2_version}-VC.zip"
+    sdl2_url = (
+        f"https://github.com/libsdl-org/SDL/releases/download/"
+        f"release-{sdl2_version}/SDL2-devel-{sdl2_version}-VC.zip"
+    )
 
     sdl2ttf_version = "2.22.0"
-    sdl2ttf_url = f"https://github.com/libsdl-org/SDL_ttf/releases/download/release-{sdl2ttf_version}/SDL2_ttf-devel-{sdl2ttf_version}-VC.zip"
+    sdl2ttf_url = (
+        f"https://github.com/libsdl-org/SDL_ttf/releases/download/"
+        f"release-{sdl2ttf_version}/SDL2_ttf-devel-{sdl2ttf_version}-VC.zip"
+    )
 
     sdl2gfx_version = "1.0.4"
-    # SDL2_gfx from giroletm fork (official libsdl-org doesn't have VC builds for this version)
-    sdl2gfx_url = f"https://github.com/giroletm/SDL2_gfx/releases/download/release-{sdl2gfx_version}/SDL2_gfx-{sdl2gfx_version}-win32-x64.zip"
+    # SDL2_gfx from giroletm fork (official libsdl-org doesn't have this)
+    sdl2gfx_url = (
+        f"https://github.com/giroletm/SDL2_gfx/releases/download/"
+        f"release-{sdl2gfx_version}/SDL2_gfx-{sdl2gfx_version}-win32-x64.zip"
+    )
 
     sdl2image_version = "2.8.2"
-    sdl2image_url = f"https://github.com/libsdl-org/SDL_image/releases/download/release-{sdl2image_version}/SDL2_image-devel-{sdl2image_version}-VC.zip"
+    sdl2image_url = (
+        f"https://github.com/libsdl-org/SDL_image/releases/download/"
+        f"release-{sdl2image_version}/SDL2_image-devel-{sdl2image_version}-VC.zip"
+    )
 
     # Create temporary directory
     with tempfile.TemporaryDirectory(prefix="sdl2_dlls_") as temp_dir:

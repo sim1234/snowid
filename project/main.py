@@ -3,7 +3,7 @@ import os
 import sys
 
 
-def setup():
+def setup() -> None:
     # logging
     logging.basicConfig(
         level=int(os.environ.get("LOG_LEVEL", "0")),
@@ -22,7 +22,7 @@ def setup():
     logging.info("PySDL2 %s", sdl2.__version__)
 
 
-def main():
+def main() -> None:
     setup()
     from game import MyGame
 

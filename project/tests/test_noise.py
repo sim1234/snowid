@@ -1,7 +1,6 @@
 """Tests for the Perlin noise generator."""
 
 import pytest
-
 from gamepart.noise import PerlinNoise
 
 
@@ -134,7 +133,7 @@ class TestPerlinNoiseCache:
         assert "1d" in info
         cache_info_1d = info["1d"]
         assert hasattr(cache_info_1d, "hits")
-        assert cache_info_1d.hits >= 1  # type: ignore[attr-defined]
+        assert cache_info_1d.hits >= 1
 
     def test_cache_disabled_with_zero_size(self) -> None:
         noise = PerlinNoise(seed=42, cache_size=0)
@@ -185,9 +184,6 @@ class TestPerlinNoiseOctaves:
 
         values_1 = [noise_1_octave.get1d(x * 0.01) for x in range(100)]
         values_4 = [noise_4_octaves.get1d(x * 0.01) for x in range(100)]
-
-        variance_1 = sum((v - sum(values_1) / len(values_1)) ** 2 for v in values_1)
-        variance_4 = sum((v - sum(values_4) / len(values_4)) ** 2 for v in values_4)
 
         assert values_1 != values_4
 

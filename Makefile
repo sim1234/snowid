@@ -1,4 +1,4 @@
-.PHONY: help install install-dev sync format format-check lint lint-fix typecheck test test-cov test-watch clean run run-shell
+.PHONY: help install install-dev sync format format-check lint lint-fix typecheck test test-cov test-watch clean run run-shell stubs download-dlls
 
 # Default target
 help:
@@ -19,6 +19,8 @@ help:
 	@echo "  make run-shell     - Run IPython shell"
 	@echo "  make check-all     - Run all checks (format, lint, typecheck, test)"
 	@echo "  make pre-commit    - Run checks typically used before committing"
+	@echo "  make stubs         - Generate type stubs for sdl2"
+	@echo "  make download-dlls - Download SDL2 DLLs for Windows"
 
 # Installation
 install:
@@ -86,3 +88,9 @@ check-all: format-check lint typecheck test
 pre-commit: format-check lint typecheck test
 	@echo "Pre-commit checks passed!"
 
+# Code generation
+stubs:
+	uv run python generate_stubs.py
+
+download-dlls:
+	uv run python download_sdl2_dlls.py

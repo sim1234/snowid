@@ -48,7 +48,7 @@ class GFXObject(GraphicalObject):
 
 class Point(GFXObject):
     def draw(self, vp: "ViewPort") -> None:
-        vp.renderer.pixel([vp.to_view(self.position)], self.color)
+        vp.renderer.pixel([vp.to_view_int(self.position)], self.color)
 
 
 class Line(GFXObject):
@@ -56,27 +56,28 @@ class Line(GFXObject):
 
     def draw(self, vp: "ViewPort") -> None:
         start, end = self.end_points
-        sx, sy = vp.to_view(start)
-        ex, ey = vp.to_view(end)
-        vp.renderer.line([(sx, sy, ex, ey)], self.color)
+        sx, sy = vp.to_view_int(start)
+        ex, ey = vp.to_view_int(end)
+        vp.renderer.line([(int(sx), int(sy), int(ex), int(ey))], self.color)
 
 
 class Polygon(GFXObject):
     points: typing.Iterable[tuple[float, float]]
 
     def draw(self, vp: "ViewPort") -> None:
-        points = [vp.to_view(p) for p in self.points]
-        vp.renderer.filled_polygon([points], self.color)
+        vp.renderer.filled_polygon(
+            [[vp.to_view_int(p) for p in self.points]], self.color
+        )
 
 
 class Circle(GFXObject):
     radius: float
 
     def draw(self, vp: "ViewPort") -> None:
-        r = vp.d_to_view(self.radius)
-        px, py = vp.to_view(self.position)
+        r = int(vp.d_to_view(self.radius))
+        px, py = vp.to_view_int(self.position)
         polar_vec = Vector.polar(r, self.angle)
-        lx, ly = px + polar_vec.x, py + polar_vec.y
+        lx, ly = int(px + polar_vec.x), int(py + polar_vec.y)
         vp.renderer.filled_circle([(px, py, r)], self.color)
         vp.renderer.line([(px, py, lx, ly)], sdl2.ext.Color(0, 0, 0))
 

@@ -2,7 +2,7 @@ import IPython
 from main import setup
 
 
-def main():
+def main() -> None:
     setup()
     IPython.start_ipython(argv=[])
 

@@ -15,6 +15,8 @@ def get_clipboard_text(encoding: str = "utf8") -> str:
     """Returns clipboard contents"""
 
     data = sdl2.SDL_GetClipboardText()
+    if data is None:
+        return ""
     try:
         return data.decode(encoding)
     except UnicodeDecodeError:

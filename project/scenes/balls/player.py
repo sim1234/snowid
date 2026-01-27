@@ -35,7 +35,7 @@ class Player(Polygon, CollisionObject, AwareObject):
         self.head.filter = cat_player.filter(cat_player_collide)
         self.head.friction = 0.0
         self.head.elasticity = 0.0
-        self.feet = pymunk.Circle(body, 10, (0, -50))
+        self.feet = pymunk.Circle(body, 30, (0, -30))
         self.feet.filter = cat_player.filter(cat_player_collide)
         self.feet.friction = 10.0
         self.feet.elasticity = 0.0

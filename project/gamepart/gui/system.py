@@ -27,17 +27,17 @@ class GUISystem(SubSystem["GUIObject"]):
     def accepts(obj: typing.Any) -> bool:
         return isinstance(obj, GUIObject)
 
-    def draw(self):
+    def draw(self) -> None:
         for obj in self.objects:
             if obj.visible:
                 obj.draw(self)
 
-    def event(self, event: sdl2.SDL_Event):
+    def event(self, event: sdl2.SDL_Event) -> None:
         for obj in self.objects:
             if obj.enabled:
                 obj.event(event)
 
-    def change_focus(self, obj: typing.Optional["GUIObject"]):
+    def change_focus(self, obj: typing.Optional["GUIObject"]) -> None:
         if self.focused_object:
             self.focused_object.unfocus()
         self.focused_object = obj

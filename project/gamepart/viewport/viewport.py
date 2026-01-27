@@ -28,7 +28,7 @@ class ViewPort(SubSystem["GraphicalObject"]):
     def accepts(obj: typing.Any) -> bool:
         return isinstance(obj, GraphicalObject)
 
-    def draw(self):
+    def draw(self) -> None:
         for obj in self.objects:
             obj.draw(self)
 
@@ -40,6 +40,9 @@ class ViewPort(SubSystem["GraphicalObject"]):
 
     def to_view(self, pos: tuple[float, float]) -> tuple[float, float]:
         return self.x_to_view(pos[0]), self.y_to_view(pos[1])  # TODO: inline?
+
+    def to_view_int(self, pos: tuple[float, float]) -> tuple[int, int]:
+        return int(self.x_to_view(pos[0])), int(self.y_to_view(pos[1]))  # TODO: inline?
 
     def d_to_view(self, d: float) -> float:
         return d * self.zoom
@@ -61,12 +64,14 @@ class ViewPort(SubSystem["GraphicalObject"]):
         return self.to_world((self.width / 2, self.height / 2))
 
     @center.setter
-    def center(self, value: tuple[float, float]):
+    def center(self, value: tuple[float, float]) -> None:
         cx, cy = self.center
         self.x += value[0] - cx
         self.y += value[1] - cy
 
-    def change_zoom(self, change: float = 1, pos: tuple[float, float] | None = None):
+    def change_zoom(
+        self, change: float = 1, pos: tuple[float, float] | None = None
+    ) -> None:
         if pos is None:
             pos = self.center
         self.x += (1 - 1 / change) * (pos[0] - self.x)

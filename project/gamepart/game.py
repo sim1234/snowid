@@ -36,10 +36,10 @@ class Game:
         self.time_speed: float = self.config["time_speed"]
         self.time_max_iter: int = self.config["time_max_iter"]
 
-        self.window: sdl2.ext.Window | None = None
-        self.renderer: GfxRenderer | None = None
-        self.sprite_factory: sdl2.ext.SpriteFactory | None = None
-        self.font_manager: sdl2.ext.FontManager | None = None
+        self.window: sdl2.ext.Window
+        self.renderer: GfxRenderer
+        self.sprite_factory: sdl2.ext.SpriteFactory
+        self.font_manager: sdl2.ext.FontManager
         self.frame_num: int = 0
         self.init_display()
         self.init_renderer()

@@ -12,14 +12,14 @@ from .system import GUISystem
 
 
 class BufferedConsole(code.InteractiveConsole):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: typing.Any, **kwargs: typing.Any) -> None:
         super().__init__(*args, **kwargs)
         self.output_buffer = io.StringIO()
 
-    def write(self, data: str):
+    def write(self, data: str) -> None:
         self.output_buffer.write(data)
 
-    def push_line(self, line: str, prefix: str = ""):
+    def push_line(self, line: str, prefix: str = "") -> bool:
         self.output_buffer.write(prefix)
         self.output_buffer.write(line)
         self.output_buffer.write("\n")
@@ -43,60 +43,60 @@ class ConsoleService:
         self.history: list[str] = []
         self.history_index: int | None = None
 
-    def get_all_buffer(self):
+    def get_all_buffer(self) -> str:
         return self.get_buffer_start() + self.get_buffer_end()
 
-    def get_buffer_start(self):
+    def get_buffer_start(self) -> str:
         return (
             self.shell.output_buffer.getvalue()
             + self.prompt
             + self.input_buffer[: self.input_index]
         )
 
-    def get_buffer_end(self):
+    def get_buffer_end(self) -> str:
         return self.input_buffer[self.input_index :]
 
-    def exit_history(self):
+    def exit_history(self) -> None:
         self.history_index = None
 
-    def enter_text(self, text: str):
+    def enter_text(self, text: str) -> None:
         self.exit_history()
         before = self.input_buffer[: self.input_index]
         after = self.input_buffer[self.input_index :]
         self.input_buffer = f"{before}{text}{after}"
         self.input_index += len(text)
 
-    def press_backspace(self, amount: int = 1):
+    def press_backspace(self, amount: int = 1) -> None:
         self.exit_history()
         before = self.input_buffer[: self.input_index][:-amount]
         after = self.input_buffer[self.input_index :]
         self.input_buffer = f"{before}{after}"
         self.input_index = max(self.input_index - amount, 0)
 
-    def press_delete(self, amount: int = 1):
+    def press_delete(self, amount: int = 1) -> None:
         self.exit_history()
         before = self.input_buffer[: self.input_index]
         after = self.input_buffer[self.input_index :][amount:]
         self.input_buffer = f"{before}{after}"
         self.input_index = max(self.input_index, 0)
 
-    def press_left(self, amount: int = 1):
+    def press_left(self, amount: int = 1) -> None:
         self.exit_history()
         self.input_index = max(self.input_index - amount, 0)
 
-    def press_right(self, amount: int = 1):
+    def press_right(self, amount: int = 1) -> None:
         self.exit_history()
         self.input_index = min(self.input_index + amount, len(self.input_buffer))
 
-    def press_end(self):
+    def press_end(self) -> None:
         self.exit_history()
         self.input_index = len(self.input_buffer)
 
-    def press_home(self):
+    def press_home(self) -> None:
         self.exit_history()
         self.input_index = 0
 
-    def press_up(self):
+    def press_up(self) -> None:
         if self.history:
             if self.history_index is None:
                 self.history_index = len(self.history)
@@ -105,7 +105,7 @@ class ConsoleService:
             self.input_buffer = self.history[self.history_index]
             self.input_index = len(self.input_buffer)
 
-    def press_down(self):
+    def press_down(self) -> None:
         if self.history_index is not None:
             self.history_index = min(self.history_index + 1, len(self.history))
             if self.history_index == len(self.history):
@@ -116,7 +116,7 @@ class ConsoleService:
                 self.input_buffer = self.history[self.history_index]
                 self.input_index = len(self.input_buffer)
 
-    def press_enter(self):
+    def press_enter(self) -> None:
         data = self.input_buffer
         if self.history_index is not None:
             data = self.history[self.history_index]
@@ -149,7 +149,7 @@ class Console(GUIObject):
         self.color = (200, 200, 200, 200)
         self.bg_color = (20, 0, 20, 200)
 
-    def focus(self):
+    def focus(self) -> None:
         sdl2.SDL_StartTextInput()
         sdl2.SDL_SetTextInputRect(
             sdl2.SDL_Rect(
@@ -160,10 +160,10 @@ class Console(GUIObject):
             )
         )
 
-    def unfocus(self):
+    def unfocus(self) -> None:
         sdl2.SDL_StopTextInput()
 
-    def draw(self, manager: "GUISystem"):
+    def draw(self, manager: "GUISystem") -> None:
         # TODO: multiline input
         # TODO: break long lines
         # TODO: split into components
@@ -231,9 +231,10 @@ class Console(GUIObject):
 
         manager.renderer.clip = old_clip
 
-    def event(self, event: sdl2.SDL_Event):
+    def event(self, event: sdl2.SDL_Event) -> None:
         if event.type == sdl2.SDL_TEXTINPUT:
-            self.service.enter_text(event.text.text.decode("utf8"))
+            text_bytes = bytes(event.text.text)
+            self.service.enter_text(text_bytes.decode("utf8"))
         if event.type == sdl2.SDL_KEYDOWN:
             if event.key.keysym.sym in (sdl2.SDLK_BACKSPACE, sdl2.SDLK_KP_BACKSPACE):
                 self.service.press_backspace()
