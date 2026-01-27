@@ -111,7 +111,7 @@ class EventDispatcher(Dispatcher[int, sdl2.SDL_Event]):
         return event.type
 
 
-class KeyEventDispatcher(Dispatcher[tuple[int, int], sdl2.SDL_Event]):
+class KeyboardEventDispatcher(Dispatcher[tuple[int, int], sdl2.SDL_Event]):
     """Dispatcher routing keyboard events by (event_type, key_sym) tuple."""
 
     @staticmethod
@@ -120,7 +120,7 @@ class KeyEventDispatcher(Dispatcher[tuple[int, int], sdl2.SDL_Event]):
         # TODO: make sure mypy picks this up
         return event.type, sub_event.keysym.sym
 
-    def attach(self, dispatcher: EventDispatcher) -> None:
+    def attach_to(self, dispatcher: EventDispatcher) -> None:
         """Register this dispatcher as a handler for keyboard events."""
         dispatcher.on(sdl2.SDL_KEYDOWN, self)
         dispatcher.on(sdl2.SDL_KEYUP, self)
@@ -138,7 +138,7 @@ class KeyEventDispatcher(Dispatcher[tuple[int, int], sdl2.SDL_Event]):
         self.on((sdl2.SDL_KEYDOWN, key), callback)
 
 
-class MouseEventDispatcher(Dispatcher[tuple[int, int], sdl2.SDL_Event]):
+class MouseButtonEventDispatcher(Dispatcher[tuple[int, int], sdl2.SDL_Event]):
     """Dispatcher routing mouse button events by (event_type, button) tuple."""
 
     @staticmethod
@@ -147,7 +147,7 @@ class MouseEventDispatcher(Dispatcher[tuple[int, int], sdl2.SDL_Event]):
         # TODO: make sure mypy picks this up
         return event.type, sub_event.button
 
-    def attach(self, dispatcher: EventDispatcher) -> None:
+    def attach_to(self, dispatcher: EventDispatcher) -> None:
         """Register this dispatcher as a handler for mouse button events."""
         dispatcher.on(sdl2.SDL_MOUSEBUTTONDOWN, self)
         dispatcher.on(sdl2.SDL_MOUSEBUTTONUP, self)

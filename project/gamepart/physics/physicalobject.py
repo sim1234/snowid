@@ -2,7 +2,8 @@ import typing
 
 import pymunk
 
-from ..subsystem import SubSystemObject
+from gamepart.subsystem import SubSystemObject
+
 from .category import Category, cat_none
 
 

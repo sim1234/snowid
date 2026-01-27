@@ -9,7 +9,8 @@ from gamepart.physics.vector import Vector
 from gamepart.render import GfxRenderer
 from gamepart.viewport import FlippedViewPort, ViewPort
 
-from ..base import MyBaseScene
+from scenes.base import MyBaseScene
+
 from .ball import Ball, TexturedBall
 from .chunk import TerrainChunkManager
 from .player import Player, PlayerController
@@ -41,17 +42,19 @@ class BallScene(MyBaseScene):
         self.viewport.change_zoom(0.5)
         self.system.add(self.viewport)
 
-        self.key_event.on_up(sdl2.SDLK_F2, self.switch_to_test)
-        self.key_event.on_down(sdl2.SDLK_w, self.player_jump)
-        self.mouse_event.on_down(sdl2.SDL_BUTTON_LEFT, self.start_drag)
-        self.mouse_event.on_up(sdl2.SDL_BUTTON_LEFT, self.end_drag)
-        self.mouse_event.on_up(sdl2.SDL_BUTTON_RIGHT, self.delete_ball)
+        self.keyboard_event.on_up(sdl2.SDLK_F2, self.switch_to_test)
+        self.keyboard_event.on_down(sdl2.SDLK_w, self.player_jump)
+        self.mouse_button_event.on_down(sdl2.SDL_BUTTON_LEFT, self.start_drag)
+        self.mouse_button_event.on_up(sdl2.SDL_BUTTON_LEFT, self.end_drag)
+        self.mouse_button_event.on_up(sdl2.SDL_BUTTON_RIGHT, self.delete_ball)
         self.event_dispatcher.on(sdl2.SDL_MOUSEWHEEL, self.change_zoom)
 
         self.player = Player(position=(200, 300))
         self.player_ctrl = PlayerController(self.player)
-        if self.key_event is not None and self.player_ctrl is not None:
-            self.key_event.on_down(sdl2.SDLK_e, self.player_ctrl.setter("shoot", True))
+        if self.keyboard_event is not None and self.player_ctrl is not None:
+            self.keyboard_event.on_down(
+                sdl2.SDLK_e, self.player_ctrl.setter("shoot", True)
+            )
 
     def start(self, context: Context) -> None:
         self.system.clear_all()

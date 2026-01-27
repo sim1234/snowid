@@ -5,8 +5,8 @@ from unittest.mock import Mock
 from gamepart.event import (
     Dispatcher,
     EventDispatcher,
-    KeyEventDispatcher,
-    MouseEventDispatcher,
+    KeyboardEventDispatcher,
+    MouseButtonEventDispatcher,
 )
 
 
@@ -200,8 +200,8 @@ class TestEventDispatcher:
         callback.assert_not_called()
 
 
-class TestKeyEventDispatcher:
-    """Test KeyEventDispatcher class."""
+class TestKeyboardEventDispatcher:
+    """Test KeyboardEventDispatcher class."""
 
     def create_key_event(self, event_type: int, key_sym: int) -> MockSDLEvent:
         event = MockSDLEvent(event_type)
@@ -211,12 +211,12 @@ class TestKeyEventDispatcher:
     def test_get_key_returns_type_and_keysym(self) -> None:
         event = self.create_key_event(event_type=768, key_sym=27)
 
-        result = KeyEventDispatcher.get_key(event)  # type: ignore
+        result = KeyboardEventDispatcher.get_key(event)  # type: ignore
 
         assert result == (768, 27)
 
     def test_dispatches_by_event_type_and_keysym(self) -> None:
-        dispatcher = KeyEventDispatcher()
+        dispatcher = KeyboardEventDispatcher()
         callback = Mock(return_value=None)
         event = self.create_key_event(event_type=768, key_sym=27)
 
@@ -226,7 +226,7 @@ class TestKeyEventDispatcher:
         callback.assert_called_once_with(event)
 
     def test_does_not_dispatch_to_wrong_key(self) -> None:
-        dispatcher = KeyEventDispatcher()
+        dispatcher = KeyboardEventDispatcher()
         callback = Mock(return_value=None)
         event = self.create_key_event(event_type=768, key_sym=27)
 
@@ -236,7 +236,7 @@ class TestKeyEventDispatcher:
         callback.assert_not_called()
 
     def test_on_up_registers_for_keyup_event(self) -> None:
-        dispatcher = KeyEventDispatcher()
+        dispatcher = KeyboardEventDispatcher()
         callback = Mock()
         sdl_keyup = 769  # SDL_KEYUP value
 
@@ -246,7 +246,7 @@ class TestKeyEventDispatcher:
         assert callback in dispatcher.callbacks[(sdl_keyup, 27)]
 
     def test_on_down_registers_for_keydown_event(self) -> None:
-        dispatcher = KeyEventDispatcher()
+        dispatcher = KeyboardEventDispatcher()
         callback = Mock()
         sdl_keydown = 768  # SDL_KEYDOWN value
 
@@ -255,13 +255,13 @@ class TestKeyEventDispatcher:
         assert (sdl_keydown, 27) in dispatcher.callbacks
         assert callback in dispatcher.callbacks[(sdl_keydown, 27)]
 
-    def test_attach_registers_with_event_dispatcher(self) -> None:
-        key_dispatcher = KeyEventDispatcher()
+    def test_attach_to_registers_with_event_dispatcher(self) -> None:
+        key_dispatcher = KeyboardEventDispatcher()
         event_dispatcher = EventDispatcher()
         sdl_keydown = 768  # SDL_KEYDOWN value
         sdl_keyup = 769  # SDL_KEYUP value
 
-        key_dispatcher.attach(event_dispatcher)
+        key_dispatcher.attach_to(event_dispatcher)
 
         assert sdl_keydown in event_dispatcher.callbacks
         assert key_dispatcher in event_dispatcher.callbacks[sdl_keydown]
@@ -269,8 +269,8 @@ class TestKeyEventDispatcher:
         assert key_dispatcher in event_dispatcher.callbacks[sdl_keyup]
 
 
-class TestMouseEventDispatcher:
-    """Test MouseEventDispatcher class."""
+class TestMouseButtonEventDispatcher:
+    """Test MouseButtonEventDispatcher class."""
 
     def create_mouse_event(self, event_type: int, button: int) -> MockSDLEvent:
         event = MockSDLEvent(event_type)
@@ -280,12 +280,12 @@ class TestMouseEventDispatcher:
     def test_get_key_returns_type_and_button(self) -> None:
         event = self.create_mouse_event(event_type=1025, button=1)
 
-        result = MouseEventDispatcher.get_key(event)  # type: ignore
+        result = MouseButtonEventDispatcher.get_key(event)  # type: ignore
 
         assert result == (1025, 1)
 
     def test_dispatches_by_event_type_and_button(self) -> None:
-        dispatcher = MouseEventDispatcher()
+        dispatcher = MouseButtonEventDispatcher()
         callback = Mock(return_value=None)
         event = self.create_mouse_event(event_type=1025, button=1)
 
@@ -295,7 +295,7 @@ class TestMouseEventDispatcher:
         callback.assert_called_once_with(event)
 
     def test_does_not_dispatch_to_wrong_button(self) -> None:
-        dispatcher = MouseEventDispatcher()
+        dispatcher = MouseButtonEventDispatcher()
         callback = Mock(return_value=None)
         event = self.create_mouse_event(event_type=1025, button=1)
 
@@ -305,7 +305,7 @@ class TestMouseEventDispatcher:
         callback.assert_not_called()
 
     def test_on_up_registers_for_mousebuttonup_event(self) -> None:
-        dispatcher = MouseEventDispatcher()
+        dispatcher = MouseButtonEventDispatcher()
         callback = Mock()
         sdl_mousebuttonup = 1026  # SDL_MOUSEBUTTONUP value
 
@@ -315,7 +315,7 @@ class TestMouseEventDispatcher:
         assert callback in dispatcher.callbacks[(sdl_mousebuttonup, 1)]
 
     def test_on_down_registers_for_mousebuttondown_event(self) -> None:
-        dispatcher = MouseEventDispatcher()
+        dispatcher = MouseButtonEventDispatcher()
         callback = Mock()
         sdl_mousebuttondown = 1025  # SDL_MOUSEBUTTONDOWN value
 
@@ -324,17 +324,30 @@ class TestMouseEventDispatcher:
         assert (sdl_mousebuttondown, 1) in dispatcher.callbacks
         assert callback in dispatcher.callbacks[(sdl_mousebuttondown, 1)]
 
+    def test_attach_to_registers_with_event_dispatcher(self) -> None:
+        event_dispatcher = EventDispatcher()
+        mouse_dispatcher = MouseButtonEventDispatcher()
+        sdl_mousebuttondown = 1025  # SDL_MOUSEBUTTONDOWN value
+        sdl_mousebuttonup = 1026  # SDL_MOUSEBUTTONUP value
+
+        mouse_dispatcher.attach_to(event_dispatcher)
+
+        assert sdl_mousebuttondown in event_dispatcher.callbacks
+        assert sdl_mousebuttonup in event_dispatcher.callbacks
+        assert mouse_dispatcher in event_dispatcher.callbacks[sdl_mousebuttondown]
+        assert mouse_dispatcher in event_dispatcher.callbacks[sdl_mousebuttonup]
+
 
 class TestDispatcherIntegration:
     """Integration tests for dispatcher chaining."""
 
     def test_key_dispatcher_works_through_event_dispatcher(self) -> None:
         event_dispatcher = EventDispatcher()
-        key_dispatcher = KeyEventDispatcher()
+        key_dispatcher = KeyboardEventDispatcher()
         callback = Mock(return_value=None)
         sdl_keydown = 768
 
-        key_dispatcher.attach(event_dispatcher)
+        key_dispatcher.attach_to(event_dispatcher)
         key_dispatcher.on_down(27, callback)
 
         event = MockSDLEvent(event_type=sdl_keydown)
@@ -346,12 +359,12 @@ class TestDispatcherIntegration:
 
     def test_propagation_stops_through_chain(self) -> None:
         event_dispatcher = EventDispatcher()
-        key_dispatcher = KeyEventDispatcher()
+        key_dispatcher = KeyboardEventDispatcher()
         stopper = Mock(return_value=True)
         not_called = Mock(return_value=None)
         sdl_keydown = 768
 
-        key_dispatcher.attach(event_dispatcher)
+        key_dispatcher.attach_to(event_dispatcher)
         key_dispatcher.on_down(27, stopper)
         event_dispatcher.chain(not_called)
 

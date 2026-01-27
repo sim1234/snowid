@@ -2,7 +2,8 @@ import typing
 
 import pymunk
 
-from ..subsystem import SubSystem
+from gamepart.subsystem import SubSystem
+
 from .physicalobject import AwareObject, CollisionObject, PhysicalObject
 
 

@@ -11,9 +11,9 @@ from .base import MyBaseScene
 class TestScene(MyBaseScene):
     def init(self) -> None:
         super().init()
-        self.key_event.on_up(sdl2.SDLK_COMMA, self.decrease_fps)
-        self.key_event.on_up(sdl2.SDLK_PERIOD, self.increase_fps)
-        self.key_event.on_up(sdl2.SDLK_F2, self.switch_to_balls)
+        self.keyboard_event.on_up(sdl2.SDLK_COMMA, self.decrease_fps)
+        self.keyboard_event.on_up(sdl2.SDLK_PERIOD, self.increase_fps)
+        self.keyboard_event.on_up(sdl2.SDLK_F2, self.switch_to_balls)
 
     def every_frame(self, renderer: GfxRenderer) -> None:
         self.game.renderer.clear((0, 0, 0, 255))

@@ -1,7 +1,7 @@
 import typing
 
-from ..render import GfxRenderer
-from ..subsystem import SubSystem
+from gamepart.render import GfxRenderer
+from gamepart.subsystem import SubSystem
 
 
 class ViewPort(SubSystem["GraphicalObject"]):

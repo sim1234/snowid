@@ -49,8 +49,11 @@ target-version = "py311"
 exclude = ["project/font.py"]  # Contains binary data
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "N", "UP"]
+select = ["E", "F", "W", "I", "N", "UP", "TID252"]
 # Ruff is compatible with black by default, no need to ignore W503
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "parents"
 
 [tool.ruff.lint.isort]
 known-first-party = ["project"]

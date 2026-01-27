@@ -241,3 +241,107 @@ class TestSystemManager:
         assert len(objects) == 2
         assert obj1 in objects
         assert obj2 in objects
+
+    def test_remove_queued_all(self) -> None:
+        """Test removing queued objects from all systems."""
+
+        class TestObject(SubSystemObject):
+            def __init__(self, name: str) -> None:
+                super().__init__()
+                self.name = name
+
+        class TestSystem(SubSystem[TestObject]):
+            @staticmethod
+            def accepts(obj: typing.Any) -> bool:
+                return isinstance(obj, TestObject)
+
+        manager = SystemManager()
+        system1 = TestSystem()
+        system2 = TestSystem()
+        manager.add(system1, system2)
+
+        obj1 = TestObject("test1")
+        obj2 = TestObject("test2")
+        obj3 = TestObject("test3")
+        system1.add(obj1, obj2)
+        system2.add(obj3)
+
+        obj1.remove()
+        obj3.remove()
+
+        removed = manager.remove_queued_all()
+        assert obj1 in removed
+        assert obj3 in removed
+        assert obj2 not in removed
+        assert len(system1.objects) == 1
+        assert obj2 in system1.objects
+        assert len(system2.objects) == 0
+
+    def test_remove_queued_all_empty_systems(self) -> None:
+        """Test remove_queued_all with no queued objects."""
+
+        class TestObject(SubSystemObject):
+            def __init__(self, name: str) -> None:
+                super().__init__()
+                self.name = name
+
+        class TestSystem(SubSystem[TestObject]):
+            @staticmethod
+            def accepts(obj: typing.Any) -> bool:
+                return isinstance(obj, TestObject)
+
+        manager = SystemManager()
+        system = TestSystem()
+        manager.add(system)
+
+        obj = TestObject("test")
+        system.add(obj)
+
+        removed = set(manager.remove_queued_all())
+        assert len(removed) == 0
+        assert len(system.objects) == 1
+
+    def test_clear_all(self) -> None:
+        """Test clearing all objects from all systems."""
+
+        class TestObject(SubSystemObject):
+            def __init__(self, name: str) -> None:
+                super().__init__()
+                self.name = name
+
+        class TestSystem(SubSystem[TestObject]):
+            @staticmethod
+            def accepts(obj: typing.Any) -> bool:
+                return isinstance(obj, TestObject)
+
+        manager = SystemManager()
+        system1 = TestSystem()
+        system2 = TestSystem()
+        manager.add(system1, system2)
+
+        obj1 = TestObject("test1")
+        obj2 = TestObject("test2")
+        obj3 = TestObject("test3")
+        system1.add(obj1, obj2)
+        system2.add(obj3)
+
+        cleared = manager.clear_all()
+        assert obj1 in cleared
+        assert obj2 in cleared
+        assert obj3 in cleared
+        assert len(system1.objects) == 0
+        assert len(system2.objects) == 0
+
+    def test_clear_all_empty_systems(self) -> None:
+        """Test clear_all with empty systems."""
+
+        class TestSystem(SubSystem[SubSystemObject]):
+            pass
+
+        manager = SystemManager()
+        system1 = TestSystem()
+        system2 = TestSystem()
+        manager.add(system1, system2)
+
+        cleared = set(manager.clear_all())
+        assert len(cleared) == 0

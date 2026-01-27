@@ -374,6 +374,33 @@ class GfxRenderer(sdl2.ext.Renderer):
         """
         return self._polygon(polygons, color, gfx_fun=sdl2.sdlgfx.filledPolygonRGBA)
 
+    def textured_polygon(
+        self,
+        polygons: Sequence[tuple[Sequence[tuple[int, int]], typing.Any, int, int]],
+    ) -> None:
+        """Draws polygons filled with a texture.
+
+        The texture location is relative to the top-left corner of the renderer,
+        not relative to the polygon itself. Both vertex coordinates and texture
+        offsets need to be adjusted equally to render a polygon with the same
+        texture placement at a different location.
+
+        Note: SDL2_gfx texturedPolygon may return non-zero values but still
+        render correctly. Return values are not checked.
+
+        Args:
+            polygons: Sequence of (points, surface, dx, dy) tuples where:
+                - points: Sequence of (x, y) vertex tuples defining the polygon
+                - surface: SDL_Surface pointer to use as texture
+                - dx: X offset of the texture relative to renderer's top-left
+                - dy: Y offset of the texture relative to renderer's top-left
+        """
+        for points, surface, dx, dy in polygons:
+            num = len(points)
+            vx = (Sint16 * num)(*[int(p[0]) for p in points])
+            vy = (Sint16 * num)(*[int(p[1]) for p in points])
+            sdl2.sdlgfx.texturedPolygon(self.sdlrenderer, vx, vy, num, surface, dx, dy)
+
     def bezier(
         self,
         beziers: Sequence[tuple[int, Sequence[tuple[int, int]]]],
@@ -401,6 +428,105 @@ class GfxRenderer(sdl2.ext.Renderer):
             )
             if ret:
                 raise sdl2.ext.SDLError()
+
+    def hline(
+        self,
+        lines: Sequence[tuple[int, int, int]],
+        color: _Color,
+    ) -> None:
+        """Draws horizontal lines.
+
+        Args:
+            lines: Sequence of (x1, x2, y) tuples where x1 and x2 are the
+                horizontal endpoints and y is the vertical position.
+            color: The color to draw with.
+        """
+        return self._shape(lines, color, gfx_fun=sdl2.sdlgfx.hlineRGBA)
+
+    def vline(
+        self,
+        lines: Sequence[tuple[int, int, int]],
+        color: _Color,
+    ) -> None:
+        """Draws vertical lines.
+
+        Args:
+            lines: Sequence of (x, y1, y2) tuples where y1 and y2 are the
+                vertical endpoints and x is the horizontal position.
+            color: The color to draw with.
+        """
+        return self._shape(lines, color, gfx_fun=sdl2.sdlgfx.vlineRGBA)
+
+    def rectangle(
+        self,
+        rects: Sequence[tuple[int, int, int, int]],
+        color: _Color,
+    ) -> None:
+        """Draws unfilled rectangles using SDL2_gfx.
+
+        Args:
+            rects: Sequence of (x1, y1, x2, y2) tuples where (x1, y1) is the
+                top-left corner and (x2, y2) is the bottom-right corner.
+            color: The color to draw with.
+        """
+        return self._shape(rects, color, gfx_fun=sdl2.sdlgfx.rectangleRGBA)
+
+    def box(
+        self,
+        boxes: Sequence[tuple[int, int, int, int]],
+        color: _Color,
+    ) -> None:
+        """Draws filled rectangles using SDL2_gfx.
+
+        Args:
+            boxes: Sequence of (x1, y1, x2, y2) tuples where (x1, y1) is the
+                top-left corner and (x2, y2) is the bottom-right corner.
+            color: The color to draw with.
+        """
+        return self._shape(boxes, color, gfx_fun=sdl2.sdlgfx.boxRGBA)
+
+    def character(
+        self,
+        chars: Sequence[tuple[int, int, str]],
+        color: _Color,
+    ) -> None:
+        """Draws single characters with the GFX font.
+
+        Args:
+            chars: Sequence of (x, y, char) tuples where x, y is the upper-left
+                corner and char is a single character string.
+            color: The color to draw with.
+        """
+        clr = sdl2.ext.convert_to_color(color)
+        for x, y, char in chars:
+            c = char.encode("ascii")[0:1]
+            ret = sdl2.sdlgfx.characterRGBA(
+                self.sdlrenderer, x, y, c, clr.r, clr.g, clr.b, clr.a
+            )
+            if ret:
+                raise sdl2.ext.SDLError()
+
+    def string(
+        self,
+        strings: Sequence[tuple[int, int, str]],
+        color: _Color,
+    ) -> None:
+        """Draws ASCII strings with the GFX font.
+
+        Note: SDL2_gfx string rendering may return non-zero values in certain
+        states but still render correctly. Return values are not checked.
+
+        Args:
+            strings: Sequence of (x, y, text) tuples where x, y is the upper-left
+                corner and text is the string to render.
+            color: The color to draw with.
+        """
+        clr = sdl2.ext.convert_to_color(color)
+        for x, y, text in strings:
+            s = text.encode("ascii")
+            sdl2.sdlgfx.stringRGBA(
+                self.sdlrenderer, x, y, s, clr.r, clr.g, clr.b, clr.a
+            )
 
     def fill_color(self, color: _Color | None) -> None:
         """Fills the entire renderer with a color.

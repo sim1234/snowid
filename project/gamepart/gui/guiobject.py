@@ -1,6 +1,6 @@
 import sdl2
 
-from ..subsystem import SubSystemObject
+from gamepart.subsystem import SubSystemObject
 
 
 class GUIObject(SubSystemObject):

@@ -130,6 +130,49 @@ class TestVectorOperations:
         assert result.x == 4.0
         assert result.y == 3.0
 
+    def test_inplace_subtraction(self) -> None:
+        """Test in-place subtraction."""
+        v = Vector(5.0, 6.0)
+        v -= Vector(2.0, 3.0)
+        assert v.x == 3.0
+        assert v.y == 3.0
+
+    def test_reverse_subtraction(self) -> None:
+        """Test reverse subtraction (tuple - vector)."""
+        v = Vector(2.0, 3.0)
+        result = (5.0, 6.0) - v
+        assert result.x == 3.0
+        assert result.y == 3.0
+
+    def test_inplace_division(self) -> None:
+        """Test in-place division."""
+        v = Vector(6.0, 8.0)
+        v /= 2.0
+        assert v.x == 3.0
+        assert v.y == 4.0
+
+    def test_unary_positive(self) -> None:
+        """Test unary positive operator returns copy."""
+        v = Vector(3.0, 4.0)
+        result = +v
+        assert result.x == 3.0
+        assert result.y == 4.0
+        assert result is not v
+
+    def test_reverse_addition(self) -> None:
+        """Test reverse addition (tuple + vector)."""
+        v = Vector(1.0, 2.0)
+        result = (3.0, 4.0) + v
+        assert result.x == 4.0
+        assert result.y == 6.0
+
+    def test_reverse_multiplication(self) -> None:
+        """Test reverse multiplication (scalar * vector)."""
+        v = Vector(2.0, 3.0)
+        result = 2.0 * v
+        assert result.x == 4.0
+        assert result.y == 6.0
+
 
 class TestVectorProperties:
     """Test Vector properties and attributes."""
@@ -174,6 +217,26 @@ class TestVectorProperties:
         v = Vector(3.0, 4.0)
         with pytest.raises(IndexError):
             _ = v[2]
+
+    def test_setitem_x(self) -> None:
+        """Test setting x via index."""
+        v = Vector(3.0, 4.0)
+        v[0] = 10.0
+        assert v.x == 10.0
+        assert v.y == 4.0
+
+    def test_setitem_y(self) -> None:
+        """Test setting y via index."""
+        v = Vector(3.0, 4.0)
+        v[1] = 10.0
+        assert v.x == 3.0
+        assert v.y == 10.0
+
+    def test_setitem_out_of_range(self) -> None:
+        """Test setting with out of range index raises IndexError."""
+        v = Vector(3.0, 4.0)
+        with pytest.raises(IndexError):
+            v[2] = 10.0
 
     def test_length(self) -> None:
         """Test vector length."""
@@ -289,3 +352,29 @@ class TestVectorEquality:
         v = Vector(3.0, 4.0)
         values = list(v)
         assert values == [3.0, 4.0]
+
+    def test_equality_with_unsupported_type(self) -> None:
+        """Test vector equality with unsupported type returns NotImplemented."""
+        v = Vector(3.0, 4.0)
+        assert (v == "not a vector") is False
+        assert (v == 42) is False
+        assert (v == {"x": 3.0}) is False
+
+    def test_to_tuple(self) -> None:
+        """Test converting vector to tuple."""
+        v = Vector(3.0, 4.0)
+        result = v.to_tuple()
+        assert result == (3.0, 4.0)
+        assert isinstance(result, tuple)
+
+    def test_to_empty_args(self) -> None:
+        """Test Vector.to with no arguments returns zero vector."""
+        v = Vector.to()
+        assert v.x == 0.0
+        assert v.y == 0.0
+
+    def test_to_with_two_args(self) -> None:
+        """Test Vector.to with two separate arguments."""
+        v = Vector.to(3.0, 4.0)
+        assert v.x == 3.0
+        assert v.y == 4.0

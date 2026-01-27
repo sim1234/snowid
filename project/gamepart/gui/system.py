@@ -2,8 +2,8 @@ import typing
 
 import sdl2.ext
 
-from ..render import GfxRenderer
-from ..subsystem import SubSystem
+from gamepart.render import GfxRenderer
+from gamepart.subsystem import SubSystem
 
 
 class GUISystem(SubSystem["GUIObject"]):

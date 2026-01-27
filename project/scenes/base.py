@@ -24,9 +24,9 @@ class MyBaseScene(SimpleScene):
             self.game.height,
         )
         self.system.add(self.gui)
-        self.key_event.on_down(sdl2.SDLK_F1, self.toggle_console)
-        self.key_event.on_up(sdl2.SDLK_F1, self.key_event.stop)
-        self.key_event.on_up(sdl2.SDLK_F3, self.toggle_fps)
+        self.keyboard_event.on_down(sdl2.SDLK_F1, self.toggle_console)
+        self.keyboard_event.on_up(sdl2.SDLK_F1, self.keyboard_event.stop)
+        self.keyboard_event.on_up(sdl2.SDLK_F3, self.toggle_fps)
         self.event_dispatcher.chain(self.gui.event)
 
     def every_frame(self, renderer: GfxRenderer) -> None:

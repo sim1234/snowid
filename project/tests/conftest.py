@@ -1,7 +1,5 @@
 """Pytest configuration and shared fixtures."""
 
-import typing
-
 import pytest
 from gamepart.physics.category import Category
 from gamepart.physics.vector import Vector
@@ -24,7 +22,6 @@ def zero_vector() -> Vector:
 @pytest.fixture
 def sample_category() -> Category:
     """Create a sample Category for testing."""
-    # Reset global index for predictable tests
     Category.global_index = 1
     return Category()
 
@@ -41,16 +38,18 @@ def time_feeder() -> TimeFeeder:
     return TimeFeeder(time_step=0.1, speed=1.0)
 
 
+class TestObject(SubSystemObject):
+    def __init__(self, name: str) -> None:
+        super().__init__()
+        self.name = name
+
+
+class TestSubSystem(SubSystem[TestObject]):
+    pass
+
+
 @pytest.fixture
-def subsystem() -> SubSystem[typing.Any]:
+def subsystem() -> TestSubSystem:
     """Create a SubSystem for testing."""
-
-    class TestObject(SubSystemObject):
-        def __init__(self, name: str) -> None:
-            super().__init__()
-            self.name = name
-
-    class TestSubSystem(SubSystem[TestObject]):
-        pass
 
     return TestSubSystem()

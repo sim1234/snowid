@@ -6,7 +6,7 @@ import sdl2.ext
 from gamepart.subsystem import SystemManager
 
 from .context import Context
-from .event import EventDispatcher, KeyEventDispatcher, MouseEventDispatcher
+from .event import EventDispatcher, KeyboardEventDispatcher, MouseButtonEventDispatcher
 from .render import GfxRenderer
 
 
@@ -65,18 +65,18 @@ class SimpleScene(Scene):
         super().__init__(*args, **kwargs)
         self.system: SystemManager
         self.event_dispatcher: EventDispatcher
-        self.key_event: KeyEventDispatcher
-        self.mouse_event: MouseEventDispatcher
+        self.keyboard_event: KeyboardEventDispatcher
+        self.mouse_button_event: MouseButtonEventDispatcher
         self.is_first_frame: bool
 
     def init(self) -> None:
         super().init()
         self.system = SystemManager()
         self.event_dispatcher = EventDispatcher()
-        self.key_event = KeyEventDispatcher()
-        self.mouse_event = MouseEventDispatcher()
-        self.mouse_event.attach(self.event_dispatcher)
-        self.key_event.attach(self.event_dispatcher)
+        self.keyboard_event = KeyboardEventDispatcher()
+        self.mouse_button_event = MouseButtonEventDispatcher()
+        self.mouse_button_event.attach_to(self.event_dispatcher)
+        self.keyboard_event.attach_to(self.event_dispatcher)
         self.event_dispatcher.on(sdl2.SDL_QUIT, lambda _: self.exit())
 
     def event(self, event: sdl2.SDL_Event) -> None:
@@ -96,8 +96,8 @@ class SimpleScene(Scene):
 
     def uninit(self) -> None:
         self.event_dispatcher.clear()
-        self.key_event.clear()
-        self.mouse_event.clear()
+        self.keyboard_event.clear()
+        self.mouse_button_event.clear()
         self.system.clear_all()
         self.system.clear()
         super().uninit()

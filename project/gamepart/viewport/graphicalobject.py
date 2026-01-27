@@ -3,8 +3,8 @@ import typing
 
 import sdl2.ext
 
-from ..physics.vector import Vector
-from ..subsystem import SubSystemObject
+from gamepart.physics.vector import Vector
+from gamepart.subsystem import SubSystemObject
 
 
 class GraphicalObject(SubSystemObject):

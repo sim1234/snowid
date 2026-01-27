@@ -6,7 +6,8 @@ import typing
 
 import sdl2
 
-from ..utils import get_clipboard_text
+from gamepart.utils import get_clipboard_text
+
 from .guiobject import GUIObject
 from .system import GUISystem
 
