@@ -14,9 +14,9 @@ from scenes.base import MyBaseScene
 from .ball import Ball, TexturedBall
 from .chunk import TerrainChunkManager
 from .player import Player, PlayerController
+from .ui import create_ui
 
 FALL_LIMIT_Y = -10000.0
-RESPAWN_Y = 500.0
 
 
 class BallScene(MyBaseScene):
@@ -51,16 +51,14 @@ class BallScene(MyBaseScene):
 
         self.player = Player(position=(200, 300))
         self.player_ctrl = PlayerController(self.player)
-        if self.keyboard_event is not None and self.player_ctrl is not None:
-            self.keyboard_event.on_down(
-                sdl2.SDLK_e, self.player_ctrl.setter("shoot", True)
-            )
+        self.keyboard_event.on_down(sdl2.SDLK_e, self.player_ctrl.setter("shoot", True))
 
     def start(self, context: Context) -> None:
         self.system.clear_all()
         super().start(context)
         if self.game.sprite_factory is None:
             return
+        create_ui(self.gui)
         resources_path = os.path.join(
             os.path.dirname(
                 os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

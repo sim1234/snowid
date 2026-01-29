@@ -232,7 +232,7 @@ class Console(GUIObject):
 
         manager.renderer.clip = old_clip
 
-    def event(self, event: sdl2.SDL_Event) -> None:
+    def event(self, event: sdl2.SDL_Event) -> bool:
         if event.type == sdl2.SDL_TEXTINPUT:
             text_bytes = bytes(event.text.text)
             self.service.enter_text(text_bytes.decode("utf8"))
@@ -264,3 +264,4 @@ class Console(GUIObject):
                 sdl2.SDLK_RETURN2,
             ):
                 self.service.press_enter()
+        return False

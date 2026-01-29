@@ -19,7 +19,7 @@ help:
 	@echo "  make run-shell     - Run IPython shell"
 	@echo "  make check-all     - Run all checks (format, lint, typecheck, test)"
 	@echo "  make pre-commit    - Run checks typically used before committing"
-	@echo "  make stubs         - Generate type stubs for sdl2"
+	@echo "  make typings       - Generate type stubs for sdl2"
 	@echo "  make download-dlls - Download SDL2 DLLs for Windows"
 
 # Installation
@@ -89,8 +89,8 @@ pre-commit: format-check lint typecheck test
 	@echo "Pre-commit checks passed!"
 
 # Code generation
-stubs:
-	uv run python generate_stubs.py
+typings:
+	uv run python generate_typings.py
 
 download-dlls:
 	uv run python download_sdl2_dlls.py

@@ -105,8 +105,8 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-# Generated stubs
-stubs/
+# Generated typings
+typings/
 ### Windows template
 # Windows thumbnail cache files
 Thumbs.db

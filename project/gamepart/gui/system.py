@@ -1,5 +1,6 @@
 import typing
 
+import sdl2
 import sdl2.ext
 
 from gamepart.render import GfxRenderer
@@ -22,6 +23,7 @@ class GUISystem(SubSystem["GUIObject"]):
         self.width = width
         self.height = height
         self.focused_object: GUIObject | None = None
+        self.mouse_position: tuple[int, int] = (0, 0)
 
     @staticmethod
     def accepts(obj: typing.Any) -> bool:
@@ -33,16 +35,35 @@ class GUISystem(SubSystem["GUIObject"]):
                 obj.draw(self)
 
     def event(self, event: sdl2.SDL_Event) -> None:
+        x, y = self._update_mouse_position(event)
+        handled = False
         for obj in self.objects:
-            if obj.enabled:
-                obj.event(event)
+            if obj.enabled and not handled:
+                if obj.event(event):
+                    handled = True
+            hovered = obj.contains_point(x, y)
+            obj.hovered = obj.visible and hovered
+            if obj.hovered and obj.enabled and not handled:
+                if obj.event_inside(event):
+                    handled = True
 
     def change_focus(self, obj: typing.Optional["GUIObject"]) -> None:
         if self.focused_object:
             self.focused_object.unfocus()
+            self.focused_object.focused = False
         self.focused_object = obj
         if self.focused_object:
             self.focused_object.focus()
+            self.focused_object.focused = True
+
+    def _update_mouse_position(self, event: sdl2.SDL_Event) -> tuple[int, int]:
+        if event.type in (sdl2.SDL_MOUSEBUTTONDOWN, sdl2.SDL_MOUSEBUTTONUP):
+            self.mouse_position = event.button.x, event.button.y
+        if event.type == sdl2.SDL_MOUSEWHEEL:
+            self.mouse_position = event.wheel.x, event.wheel.y
+        if event.type == sdl2.SDL_MOUSEMOTION:
+            self.mouse_position = event.motion.x, event.motion.y
+        return self.mouse_position
 
 
 from .guiobject import GUIObject  # noqa

@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-STUBS_DIR = Path(__file__).parent / "stubs"
+STUBS_DIR = Path(__file__).parent / "typings"
 
 # Will be populated at runtime with modules that successfully use --inspect-mode
 INSPECT_MODE_MODULES: list[str] = []
@@ -384,6 +384,11 @@ def fix_invalid_imports() -> None:
 
         # Remove invalid imports from ctypes (TTF_*, IMG_*, hb_*, etc.)
         content = re.sub(r"from ctypes import (TTF_|IMG_|hb_)[^\n]+\n", "", content)
+
+        # Replace _ctypes with ctypes (mypy doesn't recognize _ctypes)
+        content = content.replace("import _ctypes\n", "import ctypes\n")
+        content = content.replace("_ctypes.Structure", "ctypes.Structure")
+        content = content.replace("_ctypes.Union", "ctypes.Union")
 
         lines = content.split("\n")
         new_lines = []
