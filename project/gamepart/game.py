@@ -9,9 +9,10 @@ import sdl2
 import sdl2.ext
 
 from .context import Context
+from .font_manager import AdvancedFontManager
 from .render import GfxRenderer
 from .time import FPSCounter, TimeFeeder
-from .utils import get_mouse_state
+from .utils import format_event, get_mouse_state
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,7 @@ class Game:
         self.window: sdl2.ext.Window
         self.renderer: GfxRenderer
         self.sprite_factory: sdl2.ext.SpriteFactory
-        self.font_manager: sdl2.ext.FontManager
+        self.font_manager: AdvancedFontManager
         self.frame_num: int = 0
         self.init_display()
         self.init_renderer()
@@ -140,7 +141,8 @@ class Game:
         if self.scene_switch_queue:
             self.switch_scene(self.scene_switch_queue.popleft())
         for event in sdl2.ext.get_events():
-            logger.debug("Event %r %r", event.common.timestamp, event.type)
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug("Event %s", format_event(event))
             self.active_scene.event(event)
         self.tick()
         self.active_scene.frame()

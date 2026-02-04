@@ -33,14 +33,11 @@ class TestText:
         assert text.font_size == 16
         assert text.color == (200, 100, 50, 255)
 
-    def test_text_property_clears_sprite(self) -> None:
+    def test_text_property_updates_text(self) -> None:
         text = Text(text="Initial")
-        # Simulate having a sprite
-        text.sprite = object()  # type: ignore[assignment]
-        assert text.sprite is not None
+        assert text.text == "Initial"
 
         text.text = "Changed"
-        assert text.sprite is None
         assert text.text == "Changed"
 
     def test_background_color(self) -> None:

@@ -14,10 +14,11 @@ class Image(GUIObject):
         y: int = 0,
         width: int = 0,
         height: int = 0,
+        parent: GUIObject | None = None,
         sprite: sdl2.ext.Sprite | None = None,
         stretch: bool = False,
     ) -> None:
-        super().__init__(x=x, y=y, width=width, height=height)
+        super().__init__(x=x, y=y, width=width, height=height, parent=parent)
         self.sprite: sdl2.ext.Sprite | None = sprite
         self.stretch: bool = stretch
 

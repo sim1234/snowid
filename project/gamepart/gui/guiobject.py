@@ -4,7 +4,14 @@ from gamepart.subsystem import SubSystemObject
 
 
 class GUIObject(SubSystemObject):
-    def __init__(self, x: int = 0, y: int = 0, width: int = 0, height: int = 0) -> None:
+    def __init__(
+        self,
+        x: int = 0,
+        y: int = 0,
+        width: int = 0,
+        height: int = 0,
+        parent: "GUIObject | None" = None,
+    ) -> None:
         super().__init__()
         self.enabled: bool = True  # controls calls to event methods
         self.visible: bool = True  # controls calls to draw method
@@ -14,7 +21,7 @@ class GUIObject(SubSystemObject):
         self.y: int = y
         self.width: int = width
         self.height: int = height
-        self.parent: Panel | None = None
+        self.parent: GUIObject | None = parent
 
     def draw(self, manager: "GUISystem") -> None:
         raise NotImplementedError()
@@ -46,4 +53,3 @@ class GUIObject(SubSystemObject):
 
 
 from .system import GUISystem  # noqa
-from .panel import Panel  # noqa

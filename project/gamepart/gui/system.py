@@ -3,6 +3,7 @@ import typing
 import sdl2
 import sdl2.ext
 
+from gamepart.font_manager import AdvancedFontManager
 from gamepart.render import GfxRenderer
 from gamepart.subsystem import SubSystem
 
@@ -11,7 +12,7 @@ class GUISystem(SubSystem["GUIObject"]):
     def __init__(
         self,
         renderer: GfxRenderer,
-        font_manager: sdl2.ext.FontManager,
+        font_manager: AdvancedFontManager,
         sprite_factory: sdl2.ext.SpriteFactory,
         width: int,
         height: int,

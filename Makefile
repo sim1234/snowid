@@ -94,3 +94,5 @@ typings:
 
 download-dlls:
 	uv run python download_sdl2_dlls.py
+
+fmt: format lint-fix

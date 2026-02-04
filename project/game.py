@@ -1,10 +1,9 @@
 import os
 import typing
 
-import sdl2
-import sdl2.ext
 from context import MyContext
 from gamepart import Game
+from gamepart.font_manager import AdvancedFontManager
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 RESOURCES = os.path.join(ROOT, "resources")
@@ -20,7 +19,7 @@ class MyGame(Game):
         return config
 
     def init_font_manager(self) -> None:
-        self.font_manager = sdl2.ext.FontManager(
+        self.font_manager = AdvancedFontManager(
             os.path.join(RESOURCES, "PixelFJVerdana12pt.ttf")
         )
 
@@ -28,6 +27,7 @@ class MyGame(Game):
         if self.font_manager is None:
             return
         self.font_manager.add(os.path.join(RESOURCES, "Hack-Regular.ttf"), "console")
+        self.font_manager.add(os.path.join(RESOURCES, "OpenSans-Regular.ttf"), "sans")
 
     def init_scenes(self) -> None:
         import scenes

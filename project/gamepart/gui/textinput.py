@@ -5,25 +5,77 @@ from collections.abc import Callable
 
 import sdl2
 
-from gamepart.utils import get_clipboard_text
+from gamepart.event import KeyboardEventDispatcher
+from gamepart.utils import cached_depends_on, get_clipboard_text
 
+from .guiobject import GUIObject
 from .system import GUISystem
 from .text import Text
 
 
-class TextInput(Text):
+class TextController:
+    text: str
+    cursor_index: int
+
+    def enter_text(self, new_text: str) -> None:
+        before = self.text[: self.cursor_index]
+        after = self.text[self.cursor_index :]
+        self.text = f"{before}{new_text}{after}"
+        self.cursor_index += len(new_text)
+
+    def press_backspace(self, amount: int = 1) -> None:
+        before = self.text[: self.cursor_index][:-amount]
+        after = self.text[self.cursor_index :]
+        self.text = f"{before}{after}"
+        self.cursor_index = max(self.cursor_index - amount, 0)
+
+    def press_delete(self, amount: int = 1) -> None:
+        before = self.text[: self.cursor_index]
+        after = self.text[self.cursor_index :][amount:]
+        self.text = f"{before}{after}"
+
+    def press_left(self, amount: int = 1) -> None:
+        self.cursor_index = max(self.cursor_index - amount, 0)
+
+    def press_right(self, amount: int = 1) -> None:
+        self.cursor_index = min(self.cursor_index + amount, len(self.text))
+
+    def press_ctrl_left(self) -> None:
+        idx = self.text.rfind(" ", 0, max(self.cursor_index - 1, 0))
+        if idx == -1:
+            idx = 0
+        self.cursor_index = idx
+
+    def press_ctrl_right(self) -> None:
+        idx = self.text.find(" ", self.cursor_index + 1)
+        if idx == -1:
+            idx = len(self.text)
+        self.cursor_index = idx
+
+    def press_home(self) -> None:
+        self.cursor_index = 0
+
+    def press_end(self) -> None:
+        self.cursor_index = len(self.text)
+
+
+class TextInput(TextController, Text):
     def __init__(
         self,
         x: int = 0,
         y: int = 0,
         width: int = 0,
         height: int = 0,
+        parent: GUIObject | None = None,
         text: str = "",
         font: str = "console",
         font_size: int = 12,
         color: tuple[int, int, int, int] = (0, 0, 0, 255),
         background_color: tuple[int, int, int, int] | None = None,
         max_width: int | None = None,
+        cursor_index: int = 0,
+        cursor_text: str = "|",
+        cursor_frequency: float = 1.0,
         enable_paste: bool = True,
         on_submit: Callable[[str], None] | None = None,
     ) -> None:
@@ -39,10 +91,33 @@ class TextInput(Text):
             background_color=background_color,
             max_width=max_width,
         )
-        self.cursor_index: int = 0
-        self.stored_text: str = text
-        self.on_submit: Callable[[str], None] | None = on_submit
+        self.cursor_index: int = cursor_index
+        self.cursor_text: str = cursor_text
+        self.cursor_frequency: float = cursor_frequency
         self.enable_paste: bool = enable_paste
+        self.on_submit: Callable[[str], None] | None = on_submit
+        self.keyboard_event_dispatcher = KeyboardEventDispatcher()
+        self.setup_event_handlers()
+
+    def setup_event_handlers(self) -> None:
+        self.keyboard_event_dispatcher.on_down(
+            sdl2.SDLK_BACKSPACE, lambda _: self.press_backspace()
+        )
+        self.keyboard_event_dispatcher.on_down(
+            sdl2.SDLK_DELETE, lambda _: self.press_delete()
+        )
+        self.keyboard_event_dispatcher.on_down(
+            sdl2.SDLK_END, lambda _: self.press_end()
+        )
+        self.keyboard_event_dispatcher.on_down(
+            sdl2.SDLK_HOME, lambda _: self.press_home()
+        )
+        self.keyboard_event_dispatcher.on_down(sdl2.SDLK_KP_ENTER, self.on_enter)
+        self.keyboard_event_dispatcher.on_down(sdl2.SDLK_RETURN, self.on_enter)
+        self.keyboard_event_dispatcher.on_down(sdl2.SDLK_RETURN2, self.on_enter)
+        self.keyboard_event_dispatcher.on_down(sdl2.SDLK_LEFT, self.on_left)
+        self.keyboard_event_dispatcher.on_down(sdl2.SDLK_RIGHT, self.on_right)
+        self.keyboard_event_dispatcher.on_down(sdl2.SDLK_v, self.on_v)
 
     def focus(self) -> None:
         abs_x, abs_y = self.get_absolute_position()
@@ -52,89 +127,56 @@ class TextInput(Text):
     def unfocus(self) -> None:
         sdl2.SDL_StopTextInput()
 
-    def enter_text(self, new_text: str) -> None:
-        before = self.stored_text[: self.cursor_index]
-        after = self.stored_text[self.cursor_index :]
-        self.stored_text = f"{before}{new_text}{after}"
-        self.cursor_index += len(new_text)
-
-    def press_backspace(self, amount: int = 1) -> None:
-        before = self.stored_text[: self.cursor_index][:-amount]
-        after = self.stored_text[self.cursor_index :]
-        self.stored_text = f"{before}{after}"
-        self.cursor_index = max(self.cursor_index - amount, 0)
-
-    def press_delete(self, amount: int = 1) -> None:
-        before = self.stored_text[: self.cursor_index]
-        after = self.stored_text[self.cursor_index :][amount:]
-        self.stored_text = f"{before}{after}"
-
-    def press_left(self, amount: int = 1) -> None:
-        self.cursor_index = max(self.cursor_index - amount, 0)
-
-    def press_right(self, amount: int = 1) -> None:
-        self.cursor_index = min(self.cursor_index + amount, len(self.stored_text))
-
-    def press_home(self) -> None:
-        self.cursor_index = 0
-
-    def press_end(self) -> None:
-        self.cursor_index = len(self.stored_text)
-
-    def press_enter(self) -> None:
-        if self.on_submit:
-            self.on_submit(self.stored_text)
+    @cached_depends_on("font", "font_size", "color")
+    def get_cursor(self) -> Text:
+        return Text(
+            text="|",
+            font=self.font,
+            font_size=self.font_size,
+            color=self.color,
+            parent=self,
+        )
 
     def draw(self, manager: GUISystem) -> None:
-        extra = " "
-        if self.focused and time.time() % 1 <= 0.5:
-            extra = "|"
-        before = self.stored_text[: self.cursor_index]
-        after = self.stored_text[self.cursor_index :]
-        self.text = f"{before}{extra}{after}"
         super().draw(manager)
 
+        if not self.focused or time.time() % self.cursor_frequency > 0.5:
+            return
+
+        before_text = self.text[: self.cursor_index]
+        before_width, _ = manager.font_manager.get_text_size(
+            self.font, self.font_size, before_text
+        )
+
+        cursor = self.get_cursor()
+        cursor_sprite = cursor.get_rendered_text(manager)
+        assert cursor_sprite is not None
+        cursor.x = before_width - cursor_sprite.size[0] // 2
+        cursor.draw(manager)
+
     def event(self, event: sdl2.SDL_Event) -> bool:
-        if not self.focused:
-            return False
-
         if event.type == sdl2.SDL_TEXTINPUT:
-            text_bytes = bytes(event.text.text)
-            self.enter_text(text_bytes.decode("utf8"))
-            return True
+            self.enter_text(bytes(event.text.text).decode())
+        elif event.type in (sdl2.SDL_KEYDOWN, sdl2.SDL_KEYUP):
+            self.keyboard_event_dispatcher(event)
+        return True
 
-        if event.type == sdl2.SDL_KEYDOWN:
-            if event.key.keysym.sym in (sdl2.SDLK_BACKSPACE, sdl2.SDLK_KP_BACKSPACE):
-                self.press_backspace()
-                return True
-            elif event.key.keysym.sym == sdl2.SDLK_DELETE:
-                self.press_delete()
-                return True
-            elif event.key.keysym.sym == sdl2.SDLK_LEFT:
-                self.press_left()
-                return True
-            elif event.key.keysym.sym == sdl2.SDLK_RIGHT:
-                self.press_right()
-                return True
-            elif event.key.keysym.sym == sdl2.SDLK_END:
-                self.press_end()
-                return True
-            elif event.key.keysym.sym == sdl2.SDLK_HOME:
-                self.press_home()
-                return True
-            elif (
-                self.enable_paste
-                and event.key.keysym.sym == sdl2.SDLK_v
-                and event.key.keysym.mod & sdl2.KMOD_CTRL
-            ):
-                self.enter_text(get_clipboard_text())
-                return True
-            elif event.key.keysym.sym in (
-                sdl2.SDLK_KP_ENTER,
-                sdl2.SDLK_RETURN,
-                sdl2.SDLK_RETURN2,
-            ):
-                self.press_enter()
-                return True
+    def on_v(self, event: sdl2.SDL_Event) -> None:
+        if event.key.keysym.mod & sdl2.KMOD_CTRL:
+            self.enter_text(get_clipboard_text())
 
-        return False
+    def on_left(self, event: sdl2.SDL_Event) -> None:
+        if event.key.keysym.mod & sdl2.KMOD_CTRL:
+            self.press_ctrl_left()
+        else:
+            self.press_left()
+
+    def on_right(self, event: sdl2.SDL_Event) -> None:
+        if event.key.keysym.mod & sdl2.KMOD_CTRL:
+            self.press_ctrl_right()
+        else:
+            self.press_right()
+
+    def on_enter(self, event: sdl2.SDL_Event) -> None:
+        if self.on_submit:
+            self.on_submit(self.text)
