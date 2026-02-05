@@ -1,6 +1,7 @@
 from gamepart.gui.button import ButtonMixin
 from gamepart.gui.guiobject import GUIObject
 from gamepart.gui.panel import Panel
+from gamepart.gui.paragraph import Paragraph
 from gamepart.gui.system import GUISystem
 from gamepart.gui.text import Text
 from gamepart.gui.textinput import TextInput
@@ -25,10 +26,19 @@ def create_ui(gui: GUISystem) -> list[GUIObject]:
     text = Text(x=10, y=10, width=100, height=100, text="Hello, world!")
     button = Button(x=10, y=10, width=100, height=100, text="Click me")
     button.on_click = lambda: print("Button clicked")
+    paragraph = Paragraph(
+        x=10,
+        y=10,
+        width=100,
+        height=100,
+        text="Welcome to the game!\nBy Sim1234\n&AI",
+        line_spacing=10,
+    )
     panel.add_child(text_input)
     panel.add_child(text)
     panel.add_child(button)
+    panel.add_child(paragraph)
     panel.rearrange_blocks(flow="vertical")
-    gui.add(panel, text_input, text, button)
+    gui.add(panel, text_input, text, button, paragraph)
     gui.change_focus(text_input)
-    return [panel, text_input, text, button]
+    return [panel, text_input, text, button, paragraph]

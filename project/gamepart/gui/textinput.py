@@ -9,7 +9,6 @@ from gamepart.event import KeyboardEventDispatcher
 from gamepart.utils import cached_depends_on, get_clipboard_text
 
 from .guiobject import GUIObject
-from .system import GUISystem
 from .text import Text
 
 
@@ -129,54 +128,68 @@ class TextInput(TextController, Text):
 
     @cached_depends_on("font", "font_size", "color")
     def get_cursor(self) -> Text:
-        return Text(
+        text = Text(
             text="|",
             font=self.font,
             font_size=self.font_size,
             color=self.color,
             parent=self,
         )
+        text.init_gui_system(self.gui_system)
+        return text
 
-    def draw(self, manager: GUISystem) -> None:
-        super().draw(manager)
+    def draw(self) -> None:
+        super().draw()
 
         if not self.focused or time.time() % self.cursor_frequency > 0.5:
             return
 
         before_text = self.text[: self.cursor_index]
-        before_width, _ = manager.font_manager.get_text_size(
+        before_width, _ = self.gui_system.font_manager.get_text_size(
             self.font, self.font_size, before_text
         )
 
         cursor = self.get_cursor()
-        cursor_sprite = cursor.get_rendered_text(manager)
+        cursor_sprite = cursor.get_rendered_text(self.gui_system)
         assert cursor_sprite is not None
         cursor.x = before_width - cursor_sprite.size[0] // 2
-        cursor.draw(manager)
+        cursor.draw()
 
     def event(self, event: sdl2.SDL_Event) -> bool:
+        if not self.focused:
+            return False
         if event.type == sdl2.SDL_TEXTINPUT:
             self.enter_text(bytes(event.text.text).decode())
+            return True
         elif event.type in (sdl2.SDL_KEYDOWN, sdl2.SDL_KEYUP):
-            self.keyboard_event_dispatcher(event)
-        return True
+            return self.keyboard_event_dispatcher(event)
+        return False
 
-    def on_v(self, event: sdl2.SDL_Event) -> None:
+    def on_v(self, event: sdl2.SDL_Event) -> bool:
         if event.key.keysym.mod & sdl2.KMOD_CTRL:
             self.enter_text(get_clipboard_text())
+            return True
+        return False
 
-    def on_left(self, event: sdl2.SDL_Event) -> None:
+    def on_left(self, event: sdl2.SDL_Event) -> bool:
         if event.key.keysym.mod & sdl2.KMOD_CTRL:
             self.press_ctrl_left()
         else:
             self.press_left()
+        return True
 
-    def on_right(self, event: sdl2.SDL_Event) -> None:
+    def on_right(self, event: sdl2.SDL_Event) -> bool:
         if event.key.keysym.mod & sdl2.KMOD_CTRL:
             self.press_ctrl_right()
         else:
             self.press_right()
+        return True
 
-    def on_enter(self, event: sdl2.SDL_Event) -> None:
+    def on_enter(self, event: sdl2.SDL_Event) -> bool:
         if self.on_submit:
             self.on_submit(self.text)
+        return True
+
+    def clear(self) -> None:
+        self.text = ""
+        self.cursor_index = 0

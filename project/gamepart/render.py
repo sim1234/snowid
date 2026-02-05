@@ -1,6 +1,7 @@
 import ctypes
 import typing
-from collections.abc import Sequence
+from collections.abc import Generator, Sequence
+from contextlib import contextmanager
 from typing import Any, TypeVarTuple
 
 import sdl2
@@ -36,6 +37,24 @@ class GfxRenderer(sdl2.ext.Renderer):
         if ret:
             raise sdl2.ext.SDLError()
 
+    @contextmanager
+    def keep_blendmode(self) -> Generator[None, None, None]:
+        old_blendmode = self.blendmode
+        yield
+        self.blendmode = old_blendmode
+
+    @contextmanager
+    def keep_clip(self) -> Generator[None, None, None]:
+        old_clip = self.clip
+        yield
+        self.clip = old_clip
+
+    @contextmanager
+    def keep_color(self) -> Generator[None, None, None]:
+        old_color = self.color
+        yield
+        self.color = old_color
+
     def _shape(
         self,
         shapes: Sequence[tuple[*_Ts]],
@@ -44,18 +63,19 @@ class GfxRenderer(sdl2.ext.Renderer):
         gfx_fun: typing.Callable[[Any, *_Ts, int, int, int, int], int],
     ) -> None:
         """Draws multiple shapes on the renderer using the provided gfx function."""
-        clr = sdl2.ext.convert_to_color(color)
-        for cords in shapes:
-            ret = gfx_fun(
-                self.sdlrenderer,
-                *cords,
-                clr.r,
-                clr.g,
-                clr.b,
-                clr.a,
-            )
-            if ret:
-                raise sdl2.ext.SDLError()
+        with self.keep_blendmode():
+            clr = sdl2.ext.convert_to_color(color)
+            for cords in shapes:
+                ret = gfx_fun(
+                    self.sdlrenderer,
+                    *cords,
+                    clr.r,
+                    clr.g,
+                    clr.b,
+                    clr.a,
+                )
+                if ret:
+                    raise sdl2.ext.SDLError()
 
     def circle(
         self,
@@ -323,14 +343,15 @@ class GfxRenderer(sdl2.ext.Renderer):
             color: The color to draw with.
             gfx_fun: The SDL2_gfx function to use for drawing.
         """
-        clr = sdl2.ext.convert_to_color(color)
-        for points in polygons:
-            num = len(points)
-            vx = (Sint16 * num)(*[int(p[0]) for p in points])
-            vy = (Sint16 * num)(*[int(p[1]) for p in points])
-            ret = gfx_fun(self.sdlrenderer, vx, vy, num, clr.r, clr.g, clr.b, clr.a)
-            if ret:
-                raise sdl2.ext.SDLError()
+        with self.keep_blendmode():
+            clr = sdl2.ext.convert_to_color(color)
+            for points in polygons:
+                num = len(points)
+                vx = (Sint16 * num)(*[int(p[0]) for p in points])
+                vy = (Sint16 * num)(*[int(p[1]) for p in points])
+                ret = gfx_fun(self.sdlrenderer, vx, vy, num, clr.r, clr.g, clr.b, clr.a)
+                if ret:
+                    raise sdl2.ext.SDLError()
 
     def polygon(
         self,
@@ -534,11 +555,9 @@ class GfxRenderer(sdl2.ext.Renderer):
         Args:
             color: The color to fill with, or None to use the current color.
         """
-        if color is not None:
-            tmp = self.color
-            self.color = sdl2.ext.convert_to_color(color)
-        ret = sdl2.SDL_RenderFillRect(self.sdlrenderer, None)  # type: ignore[arg-type]
-        if color is not None:
-            self.color = tmp
-        if ret == -1:
-            raise sdl2.ext.SDLError()
+        with self.keep_blendmode(), self.keep_clip():
+            if color is not None:
+                self.color = sdl2.ext.convert_to_color(color)
+            ret = sdl2.SDL_RenderFillRect(self.sdlrenderer, None)  # type: ignore[arg-type]
+            if ret == -1:
+                raise sdl2.ext.SDLError()

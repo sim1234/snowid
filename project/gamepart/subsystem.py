@@ -5,7 +5,7 @@ class SubSystemObject:
     def __init__(self) -> None:
         self._not_removed: bool = True
 
-    def remove(self) -> None:
+    def mark_for_removal(self) -> None:
         self._not_removed = False
 
     def __bool__(self) -> bool:
@@ -32,11 +32,11 @@ class SubSystem(SubSystemObject, typing.Generic[T]):
 
     def add(self, *objects: T) -> typing.Iterable[T]:
         for obj in objects:
-            assert self.accepts(obj)
+            assert self.accepts(obj), obj
         self.objects.extend(objects)
         return objects
 
-    def remove(self, *objects: T) -> typing.Iterable[T]:  # type: ignore[override]
+    def remove(self, *objects: T) -> typing.Iterable[T]:
         for obj in objects:
             self.objects.remove(obj)
         return objects

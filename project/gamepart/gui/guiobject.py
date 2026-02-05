@@ -4,6 +4,8 @@ from gamepart.subsystem import SubSystemObject
 
 
 class GUIObject(SubSystemObject):
+    gui_system: "GUISystem"
+
     def __init__(
         self,
         x: int = 0,
@@ -23,8 +25,14 @@ class GUIObject(SubSystemObject):
         self.height: int = height
         self.parent: GUIObject | None = parent
 
-    def draw(self, manager: "GUISystem") -> None:
+    def draw(self) -> None:
         raise NotImplementedError()
+
+    def init_gui_system(self, gui_system: "GUISystem") -> None:
+        self.gui_system = gui_system
+
+    def uninit_gui_system(self) -> None:
+        del self.gui_system
 
     def event(self, event: sdl2.SDL_Event) -> bool:
         """Handle the event. Return True if event propagation should stop."""

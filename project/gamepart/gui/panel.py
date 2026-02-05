@@ -4,7 +4,6 @@ from collections.abc import Iterable
 from typing import Literal
 
 from .guiobject import GUIObject
-from .system import GUISystem
 
 
 class Panel(GUIObject):
@@ -30,10 +29,10 @@ class Panel(GUIObject):
         self.children.remove(child)
         return child
 
-    def draw(self, manager: GUISystem) -> None:
+    def draw(self) -> None:
         if self.background_color:
             x, y = self.get_absolute_position()
-            manager.renderer.fill(
+            self.gui_system.renderer.fill(
                 [(x, y, self.width, self.height)], self.background_color
             )
 

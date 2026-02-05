@@ -12,7 +12,7 @@ class MockChild(GUIObject):
         self.draw_called = False
         self.event_called = False
 
-    def draw(self, manager: Any) -> None:
+    def draw(self) -> None:
         self.draw_called = True
 
     def event(self, event: Any) -> bool:

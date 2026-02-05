@@ -48,6 +48,18 @@ class Text(Image):
             return manager.sprite_factory.from_surface(surface, free=True)
         return None
 
-    def draw(self, manager: GUISystem) -> None:
-        self.sprite = self.get_rendered_text(manager)
-        super().draw(manager)
+    def draw(self) -> None:
+        self.sprite = self.get_rendered_text(self.gui_system)
+        super().draw()
+
+    @cached_depends_on("font", "font_size")
+    def get_line_height(self) -> int:
+        return self.gui_system.font_manager.get_line_height(self.font, self.font_size)
+
+    def fit_to_text(self) -> None:
+        sprite = self.get_rendered_text(self.gui_system)
+        self.width = 0 if sprite is None else sprite.size[0]
+        if self.max_width is None or sprite is None:
+            self.height = self.get_line_height()
+        else:
+            self.height = sprite.size[1]

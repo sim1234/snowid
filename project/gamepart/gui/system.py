@@ -30,10 +30,21 @@ class GUISystem(SubSystem["GUIObject"]):
     def accepts(obj: typing.Any) -> bool:
         return isinstance(obj, GUIObject)
 
+    def add(self, *objects: "GUIObject") -> typing.Iterable["GUIObject"]:
+        super().add(*objects)
+        for obj in objects:
+            obj.init_gui_system(self)
+        return objects
+
+    def remove(self, *objects: "GUIObject") -> typing.Iterable["GUIObject"]:
+        for obj in objects:
+            obj.uninit_gui_system()
+        return super().remove(*objects)
+
     def draw(self) -> None:
         for obj in self.objects:
             if obj.visible:
-                obj.draw(self)
+                obj.draw()
 
     def event(self, event: sdl2.SDL_Event) -> None:
         x, y = self._update_mouse_position(event)

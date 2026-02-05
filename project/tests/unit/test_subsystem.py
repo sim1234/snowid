@@ -17,7 +17,7 @@ class TestSubSystemObject:
     def test_remove(self) -> None:
         """Test removing an object."""
         obj = SubSystemObject()
-        obj.remove()
+        obj.mark_for_removal()
         assert obj._not_removed is False
         assert bool(obj) is False
 
@@ -125,7 +125,7 @@ class TestSubSystem:
         obj1 = TestObject("test1")
         obj2 = TestObject("test2")
         system.add(obj1, obj2)
-        obj1.remove()  # Mark for removal
+        obj1.mark_for_removal()  # Mark for removal
         removed = list(system.remove_queued())
         assert len(removed) == 1
         assert obj1 in removed
@@ -266,8 +266,8 @@ class TestSystemManager:
         system1.add(obj1, obj2)
         system2.add(obj3)
 
-        obj1.remove()
-        obj3.remove()
+        obj1.mark_for_removal()
+        obj3.mark_for_removal()
 
         removed = manager.remove_queued_all()
         assert obj1 in removed

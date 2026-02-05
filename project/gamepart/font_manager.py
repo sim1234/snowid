@@ -17,3 +17,7 @@ class AdvancedFontManager(FontManager):
             font, text.encode("utf-8"), ctypes.byref(w), ctypes.byref(h)
         )
         return w.value, h.value
+
+    @lru_cache(maxsize=100)
+    def get_line_height(self, font: str, size: int) -> int:
+        return sdlttf.TTF_FontLineSkip(self.fonts[font][size])

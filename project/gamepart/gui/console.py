@@ -1,15 +1,17 @@
 import code
 import io
 import sys
-import time
 import typing
 
 import sdl2
 
-from gamepart.utils import get_clipboard_text
+from gamepart.event import KeyboardEventDispatcher
+from gamepart.utils import cached_depends_on
 
 from .guiobject import GUIObject
-from .system import GUISystem
+from .paragraph import Paragraph
+from .text import Text
+from .textinput import TextInput
 
 
 class BufferedConsole(code.InteractiveConsole):
@@ -39,88 +41,36 @@ class ConsoleService:
         self.prompt2: str = "... "
         self.prompt: str = self.prompt1
         self.input_buffer: str = ""
-        self.input_buffer2: str = ""
-        self.input_index: int = 0
         self.history: list[str] = []
         self.history_index: int | None = None
 
-    def get_all_buffer(self) -> str:
-        return self.get_buffer_start() + self.get_buffer_end()
-
-    def get_buffer_start(self) -> str:
-        return (
-            self.shell.output_buffer.getvalue()
-            + self.prompt
-            + self.input_buffer[: self.input_index]
-        )
-
-    def get_buffer_end(self) -> str:
-        return self.input_buffer[self.input_index :]
+    def get_history_output(self) -> str:
+        return self.shell.output_buffer.getvalue()
 
     def exit_history(self) -> None:
         self.history_index = None
 
-    def enter_text(self, text: str) -> None:
-        self.exit_history()
-        before = self.input_buffer[: self.input_index]
-        after = self.input_buffer[self.input_index :]
-        self.input_buffer = f"{before}{text}{after}"
-        self.input_index += len(text)
-
-    def press_backspace(self, amount: int = 1) -> None:
-        self.exit_history()
-        before = self.input_buffer[: self.input_index][:-amount]
-        after = self.input_buffer[self.input_index :]
-        self.input_buffer = f"{before}{after}"
-        self.input_index = max(self.input_index - amount, 0)
-
-    def press_delete(self, amount: int = 1) -> None:
-        self.exit_history()
-        before = self.input_buffer[: self.input_index]
-        after = self.input_buffer[self.input_index :][amount:]
-        self.input_buffer = f"{before}{after}"
-        self.input_index = max(self.input_index, 0)
-
-    def press_left(self, amount: int = 1) -> None:
-        self.exit_history()
-        self.input_index = max(self.input_index - amount, 0)
-
-    def press_right(self, amount: int = 1) -> None:
-        self.exit_history()
-        self.input_index = min(self.input_index + amount, len(self.input_buffer))
-
-    def press_end(self) -> None:
-        self.exit_history()
-        self.input_index = len(self.input_buffer)
-
-    def press_home(self) -> None:
-        self.exit_history()
-        self.input_index = 0
-
-    def press_up(self) -> None:
+    def press_up(self, current_input: str) -> str | None:
         if self.history:
             if self.history_index is None:
                 self.history_index = len(self.history)
-                self.input_buffer2 = self.input_buffer
+                self.input_buffer = current_input
             self.history_index = max(self.history_index - 1, 0)
-            self.input_buffer = self.history[self.history_index]
-            self.input_index = len(self.input_buffer)
+            return self.history[self.history_index]
+        return None
 
-    def press_down(self) -> None:
+    def press_down(self) -> str | None:
         if self.history_index is not None:
             self.history_index = min(self.history_index + 1, len(self.history))
             if self.history_index == len(self.history):
-                self.input_buffer = self.input_buffer2
-                self.input_index = len(self.input_buffer)
+                result = self.input_buffer
                 self.history_index = None
+                return result
             else:
-                self.input_buffer = self.history[self.history_index]
-                self.input_index = len(self.input_buffer)
+                return self.history[self.history_index]
+        return None
 
-    def press_enter(self) -> None:
-        data = self.input_buffer
-        if self.history_index is not None:
-            data = self.history[self.history_index]
+    def submit(self, data: str) -> None:
         self.exit_history()
         if data:
             self.history.append(data)
@@ -128,8 +78,6 @@ class ConsoleService:
             self.prompt = self.prompt2
         else:
             self.prompt = self.prompt1
-        self.input_buffer = ""
-        self.input_index = 0
 
 
 class Console(GUIObject):
@@ -140,128 +88,141 @@ class Console(GUIObject):
             locals_.update(shell_locals)
         self.shell = BufferedConsole(locals=locals_)
         self.service = ConsoleService(self.shell)
+
         self.font = "console"
         self.font_size: int = 12
         self.line_spacing: int = 2
-        self.position = [0, 0]
         self.width: int = 640
         self.height: int = 200
-        self.scroll = [0, 0]
-        self.color = (200, 200, 200, 200)
-        self.bg_color = (20, 0, 20, 200)
+        self.wrap_width: int | None = None
+        self.color: tuple[int, int, int, int] = (200, 200, 200, 200)
+        self.bg_color: tuple[int, int, int, int] = (20, 0, 20, 200)
+
+        self.keyboard_dispatcher = KeyboardEventDispatcher()
+        self.keyboard_dispatcher.on_down(sdl2.SDLK_UP, self.on_up)
+        self.keyboard_dispatcher.on_down(sdl2.SDLK_DOWN, self.on_down)
+
+    def wrap_lines(self, text: str) -> str:
+        wrap_width = self.wrap_width or int(self.width / self.font_size * 1.7)
+        lines = []
+        for line in text.split("\n"):
+            if len(line) <= wrap_width:
+                lines.append(line)
+            else:
+                while len(line) > wrap_width:
+                    lines.append(line[:wrap_width])
+                    line = line[wrap_width:]
+                if line:
+                    lines.append(line)
+        return "\n".join(lines)
+
+    @cached_depends_on("font", "font_size", "color", "height", "line_spacing")
+    def get_prompt_text(self) -> Text:
+        text = Text(
+            text=self.service.prompt,
+            font=self.font,
+            font_size=self.font_size,
+            color=self.color,
+        )
+        text.init_gui_system(self.gui_system)
+        text.fit_to_text()
+        text.y = self.height - text.height - self.line_spacing
+        return text
+
+    @cached_depends_on("font", "font_size", "color", "height", "line_spacing")
+    def get_input_field(self) -> TextInput:
+        text_input = TextInput(
+            text=self.service.input_buffer,
+            font=self.font,
+            font_size=self.font_size,
+            color=self.color,
+            on_submit=self.on_input_submit,
+        )
+        text_input.init_gui_system(self.gui_system)
+        text = self.get_prompt_text()
+        text_input.x, text_input.y = text.width + self.line_spacing, text.y
+        text_input.focused = self.focused
+        return text_input
+
+    @cached_depends_on("font", "font_size", "color", "line_spacing")
+    def get_history_paragraph(self) -> Paragraph:
+        paragraph = Paragraph(
+            text=self.wrap_lines(self.service.get_history_output()),
+            font=self.font,
+            font_size=self.font_size,
+            color=self.color,
+            line_spacing=self.line_spacing,
+        )
+        paragraph.init_gui_system(self.gui_system)
+        return paragraph
 
     def focus(self) -> None:
-        sdl2.SDL_StartTextInput()
-        sdl2.SDL_SetTextInputRect(
-            sdl2.SDL_Rect(
-                self.position[0],
-                self.position[1] + self.height - self.font_size,
-                self.width,
-                self.font_size,
-            )
-        )
+        input_field = self.get_input_field()
+        input_field.focused = True
+        input_field.focus()
 
     def unfocus(self) -> None:
-        sdl2.SDL_StopTextInput()
+        input_field = self.get_input_field()
+        input_field.focused = False
+        input_field.unfocus()
 
-    def draw(self, manager: "GUISystem") -> None:
+    def on_input_submit(self, text: str) -> None:
+        self.service.submit(text)
+        input_field = self.get_input_field()
+        input_field.clear()
+
+    def on_up(self, event: sdl2.SDL_Event) -> bool:
+        input_field = self.get_input_field()
+        new_text = self.service.press_up(input_field.text)
+        if new_text is not None:
+            input_field.text = new_text
+            input_field.cursor_index = len(new_text)
+        return True
+
+    def on_down(self, event: sdl2.SDL_Event) -> bool:
+        input_field = self.get_input_field()
+        new_text = self.service.press_down()
+        if new_text is not None:
+            input_field.text = new_text
+            input_field.cursor_index = len(new_text)
+        return True
+
+    def draw(self) -> None:
+        x, y = self.get_absolute_position()
+
+        self.gui_system.renderer.fill(
+            [(x, y, self.width, self.height)],
+            self.bg_color,
+        )
+        input_field = self.get_input_field()
+        prompt_text = self.get_prompt_text()
+        history_paragraph = self.get_history_paragraph()
+
+        history_paragraph.text = self.wrap_lines(self.service.get_history_output())
+        history_paragraph.fit_to_text()
+        prompt_text.text = self.service.prompt
+        prompt_text.fit_to_text()
+        scroll_y = self.height - history_paragraph.height - self.line_spacing
+        history_paragraph.y = scroll_y
+        input_field.x = prompt_text.width
+
+        history_paragraph.draw()
+        prompt_text.draw()
+        input_field.draw()
+
+    def event(self, event: sdl2.SDL_Event) -> bool:
+        if event.type in (sdl2.SDL_KEYDOWN, sdl2.SDL_KEYUP):
+            if self.keyboard_dispatcher(event):
+                return True
+        return self.get_input_field().event(event)
+
         # TODO: multiline input
         # TODO: break long lines
-        # TODO: split into components
-        # TODO: clipboard
         # TODO: stop propagation of all events
         # TODO: scrolls
-        # TODO: add game to locals
         # TODO: use game time
         # TODO: save & load history?
         # TODO: IPython?
-
-        line_height = self.font_size + self.line_spacing
-        buffer = self.service.get_buffer_start()
-        old_clip = manager.renderer.clip
-        manager.renderer.clip = (
-            self.position[0],
-            self.position[1],
-            self.width,
-            self.height,
-        )
-        manager.renderer.fill(
-            [(self.position[0], self.position[1], self.width, self.height)],
-            self.bg_color,
-        )
-
-        self.scroll[1] = (
-            self.height - (buffer.count("\n") + 1) * line_height - self.line_spacing
-        )
-        py = 0
-        for row in buffer.split("\n"):
-            spy = py + self.scroll[1]
-            if row and spy <= self.height and spy + line_height >= 0:
-                text = manager.font_manager.render(
-                    row, alias=self.font, size=self.font_size, color=self.color
-                )
-                tw = text.w
-                th = text.h
-                tx = self.position[0] + self.scroll[0]
-                ty = self.position[1] + self.scroll[1] + py
-                text = manager.sprite_factory.from_surface(text, True)
-                manager.renderer.copy(text, (0, 0, tw, th), (tx, ty, tw, th))
-            py += line_height
-
-        ttx = tx + tw
-        if time.time() % 1 <= 0.5:
-            text = manager.font_manager.render(
-                "|", alias=self.font, size=self.font_size, color=self.color
-            )
-            ttw = text.w
-            tth = text.h
-            text = manager.sprite_factory.from_surface(text, True)
-            manager.renderer.copy(
-                text, (0, 0, ttw, tth), (ttx - int(ttw / 2), ty, ttw, tth)
-            )
-
-        rest = self.service.get_buffer_end()
-        if rest:
-            text = manager.font_manager.render(
-                rest, alias=self.font, size=self.font_size, color=self.color
-            )
-            tw = text.w
-            th = text.h
-            text = manager.sprite_factory.from_surface(text, True)
-            manager.renderer.copy(text, (0, 0, tw, th), (ttx, ty, tw, th))
-
-        manager.renderer.clip = old_clip
-
-    def event(self, event: sdl2.SDL_Event) -> bool:
-        if event.type == sdl2.SDL_TEXTINPUT:
-            text_bytes = bytes(event.text.text)
-            self.service.enter_text(text_bytes.decode("utf8"))
-        if event.type == sdl2.SDL_KEYDOWN:
-            if event.key.keysym.sym in (sdl2.SDLK_BACKSPACE, sdl2.SDLK_KP_BACKSPACE):
-                self.service.press_backspace()
-            if event.key.keysym.sym == sdl2.SDLK_DELETE:
-                self.service.press_delete()
-            elif event.key.keysym.sym == sdl2.SDLK_LEFT:
-                self.service.press_left()
-            elif event.key.keysym.sym == sdl2.SDLK_RIGHT:
-                self.service.press_right()
-            elif event.key.keysym.sym == sdl2.SDLK_END:
-                self.service.press_end()
-            elif event.key.keysym.sym == sdl2.SDLK_HOME:
-                self.service.press_home()
-            elif event.key.keysym.sym == sdl2.SDLK_UP:
-                self.service.press_up()
-            elif event.key.keysym.sym == sdl2.SDLK_DOWN:
-                self.service.press_down()
-            elif (
-                event.key.keysym.sym == sdl2.SDLK_v
-                and event.key.keysym.mod & sdl2.KMOD_CTRL
-            ):
-                self.service.enter_text(get_clipboard_text())
-            elif event.key.keysym.sym in (
-                sdl2.SDLK_KP_ENTER,
-                sdl2.SDLK_RETURN,
-                sdl2.SDLK_RETURN2,
-            ):
-                self.service.press_enter()
-        return False
+        # TODO: selectable text & copy
+        # TODO: KeyboadInterrupt
+        # TODO: history search

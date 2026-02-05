@@ -26,7 +26,7 @@ class World(SubSystem[PhysicalObject]):
                 self.shape_map[shape] = obj
         return objects
 
-    def remove(self, *objects: PhysicalObject) -> typing.Iterable[PhysicalObject]:  # type: ignore[override]
+    def remove(self, *objects: PhysicalObject) -> typing.Iterable[PhysicalObject]:
         for obj in objects:
             self.space.remove(*obj.bodies, *obj.shapes)
             for shape in obj.shapes:
