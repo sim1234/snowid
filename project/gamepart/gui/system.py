@@ -1,4 +1,5 @@
 import typing
+from typing import Any
 
 import sdl2
 import sdl2.ext
@@ -46,18 +47,20 @@ class GUISystem(SubSystem["GUIObject"]):
             if obj.visible:
                 obj.draw()
 
-    def event(self, event: sdl2.SDL_Event) -> None:
+    def event(self, event: sdl2.SDL_Event) -> Any:
         x, y = self._update_mouse_position(event)
-        handled = False
+        result = None
+        handled_by = None
         for obj in self.objects:
-            if obj.enabled and not handled:
-                if obj.event(event):
-                    handled = True
+            if obj.enabled and handled_by is None:
+                if result := obj.event(event):
+                    handled_by = obj.event
             hovered = obj.contains_point(x, y)
             obj.hovered = obj.visible and hovered
-            if obj.hovered and obj.enabled and not handled:
-                if obj.event_inside(event):
-                    handled = True
+            if obj.hovered and obj.enabled and handled_by is None:
+                if result := obj.event_inside(event):
+                    handled_by = obj.event_inside
+        return False if handled_by is None else (handled_by, result)
 
     def change_focus(self, obj: typing.Optional["GUIObject"]) -> None:
         if self.focused_object:
@@ -71,8 +74,6 @@ class GUISystem(SubSystem["GUIObject"]):
     def _update_mouse_position(self, event: sdl2.SDL_Event) -> tuple[int, int]:
         if event.type in (sdl2.SDL_MOUSEBUTTONDOWN, sdl2.SDL_MOUSEBUTTONUP):
             self.mouse_position = event.button.x, event.button.y
-        if event.type == sdl2.SDL_MOUSEWHEEL:
-            self.mouse_position = event.wheel.x, event.wheel.y
         if event.type == sdl2.SDL_MOUSEMOTION:
             self.mouse_position = event.motion.x, event.motion.y
         return self.mouse_position

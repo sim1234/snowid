@@ -9,7 +9,7 @@ from gamepart.event import KeyboardEventDispatcher
 from gamepart.utils import cached_depends_on
 
 from .guiobject import GUIObject
-from .paragraph import Paragraph
+from .paragraph import ScrollableParagraph
 from .text import Text
 from .textinput import TextInput
 
@@ -45,7 +45,7 @@ class ConsoleService:
         self.history_index: int | None = None
 
     def get_history_output(self) -> str:
-        return self.shell.output_buffer.getvalue()
+        return self.shell.output_buffer.getvalue().rstrip("\n")
 
     def exit_history(self) -> None:
         self.history_index = None
@@ -144,17 +144,26 @@ class Console(GUIObject):
         text_input.focused = self.focused
         return text_input
 
-    @cached_depends_on("font", "font_size", "color", "line_spacing")
-    def get_history_paragraph(self) -> Paragraph:
-        paragraph = Paragraph(
+    @cached_depends_on("font", "font_size", "color", "line_spacing", "height")
+    def get_history_paragraph(self) -> ScrollableParagraph:
+        input_height = self.get_prompt_text().height + self.line_spacing
+        paragraph = ScrollableParagraph(
             text=self.wrap_lines(self.service.get_history_output()),
             font=self.font,
             font_size=self.font_size,
             color=self.color,
             line_spacing=self.line_spacing,
+            width=self.width,
+            height=self.height - input_height - self.line_spacing,
+            valign="bottom",
         )
         paragraph.init_gui_system(self.gui_system)
         return paragraph
+
+    def scroll_history_to_bottom(self) -> None:
+        paragraph = self.get_history_paragraph()
+        paragraph.text = self.wrap_lines(self.service.get_history_output())
+        paragraph.target_scroll_offset = float("inf")
 
     def focus(self) -> None:
         input_field = self.get_input_field()
@@ -170,6 +179,7 @@ class Console(GUIObject):
         self.service.submit(text)
         input_field = self.get_input_field()
         input_field.clear()
+        self.scroll_history_to_bottom()
 
     def on_up(self, event: sdl2.SDL_Event) -> bool:
         input_field = self.get_input_field()
@@ -199,11 +209,8 @@ class Console(GUIObject):
         history_paragraph = self.get_history_paragraph()
 
         history_paragraph.text = self.wrap_lines(self.service.get_history_output())
-        history_paragraph.fit_to_text()
         prompt_text.text = self.service.prompt
         prompt_text.fit_to_text()
-        scroll_y = self.height - history_paragraph.height - self.line_spacing
-        history_paragraph.y = scroll_y
         input_field.x = prompt_text.width
 
         history_paragraph.draw()
@@ -212,17 +219,22 @@ class Console(GUIObject):
 
     def event(self, event: sdl2.SDL_Event) -> bool:
         if event.type in (sdl2.SDL_KEYDOWN, sdl2.SDL_KEYUP):
-            if self.keyboard_dispatcher(event):
-                return True
+            if result := self.keyboard_dispatcher(event):
+                return result
         return self.get_input_field().event(event)
+
+    def event_inside(self, event: sdl2.SDL_Event) -> bool:
+        if event.type == sdl2.SDL_MOUSEWHEEL:
+            return self.get_history_paragraph().event_inside(event)
+        return super().event_inside(event)
 
         # TODO: multiline input
         # TODO: break long lines
         # TODO: stop propagation of all events
-        # TODO: scrolls
         # TODO: use game time
         # TODO: save & load history?
         # TODO: IPython?
         # TODO: selectable text & copy
         # TODO: KeyboadInterrupt
         # TODO: history search
+        # TODO: autocomplete

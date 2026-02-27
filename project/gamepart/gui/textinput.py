@@ -99,18 +99,10 @@ class TextInput(TextController, Text):
         self.setup_event_handlers()
 
     def setup_event_handlers(self) -> None:
-        self.keyboard_event_dispatcher.on_down(
-            sdl2.SDLK_BACKSPACE, lambda _: self.press_backspace()
-        )
-        self.keyboard_event_dispatcher.on_down(
-            sdl2.SDLK_DELETE, lambda _: self.press_delete()
-        )
-        self.keyboard_event_dispatcher.on_down(
-            sdl2.SDLK_END, lambda _: self.press_end()
-        )
-        self.keyboard_event_dispatcher.on_down(
-            sdl2.SDLK_HOME, lambda _: self.press_home()
-        )
+        self.keyboard_event_dispatcher.on_down(sdl2.SDLK_BACKSPACE, self.on_backspace)
+        self.keyboard_event_dispatcher.on_down(sdl2.SDLK_DELETE, self.on_delete)
+        self.keyboard_event_dispatcher.on_down(sdl2.SDLK_END, self.on_end)
+        self.keyboard_event_dispatcher.on_down(sdl2.SDLK_HOME, self.on_home)
         self.keyboard_event_dispatcher.on_down(sdl2.SDLK_KP_ENTER, self.on_enter)
         self.keyboard_event_dispatcher.on_down(sdl2.SDLK_RETURN, self.on_enter)
         self.keyboard_event_dispatcher.on_down(sdl2.SDLK_RETURN2, self.on_enter)
@@ -164,6 +156,22 @@ class TextInput(TextController, Text):
         elif event.type in (sdl2.SDL_KEYDOWN, sdl2.SDL_KEYUP):
             return self.keyboard_event_dispatcher(event)
         return False
+
+    def on_backspace(self, event: sdl2.SDL_Event) -> bool:
+        self.press_backspace()
+        return True
+
+    def on_delete(self, event: sdl2.SDL_Event) -> bool:
+        self.press_delete()
+        return True
+
+    def on_end(self, event: sdl2.SDL_Event) -> bool:
+        self.press_end()
+        return True
+
+    def on_home(self, event: sdl2.SDL_Event) -> bool:
+        self.press_home()
+        return True
 
     def on_v(self, event: sdl2.SDL_Event) -> bool:
         if event.key.keysym.mod & sdl2.KMOD_CTRL:

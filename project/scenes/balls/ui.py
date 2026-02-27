@@ -1,7 +1,7 @@
 from gamepart.gui.button import ButtonMixin
 from gamepart.gui.guiobject import GUIObject
 from gamepart.gui.panel import Panel
-from gamepart.gui.paragraph import Paragraph
+from gamepart.gui.paragraph import Paragraph, ScrollableParagraph
 from gamepart.gui.system import GUISystem
 from gamepart.gui.text import Text
 from gamepart.gui.textinput import TextInput
@@ -34,11 +34,22 @@ def create_ui(gui: GUISystem) -> list[GUIObject]:
         text="Welcome to the game!\nBy Sim1234\n&AI",
         line_spacing=10,
     )
+    scrollable_paragraph = ScrollableParagraph(
+        x=10,
+        y=10,
+        width=200,
+        height=80,
+        text="\n".join(f"Line {i}: Scrollable content here" for i in range(20)),
+        line_spacing=4,
+        scroll_speed=20,
+        smooth_scroll_factor=0.2,
+    )
     panel.add_child(text_input)
     panel.add_child(text)
     panel.add_child(button)
     panel.add_child(paragraph)
+    panel.add_child(scrollable_paragraph)
     panel.rearrange_blocks(flow="vertical")
-    gui.add(panel, text_input, text, button, paragraph)
+    gui.add(panel, text_input, text, button, paragraph, scrollable_paragraph)
     gui.change_focus(text_input)
-    return [panel, text_input, text, button, paragraph]
+    return [panel, text_input, text, button, paragraph, scrollable_paragraph]

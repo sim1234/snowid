@@ -11,6 +11,17 @@ class SubSystemObject:
     def __bool__(self) -> bool:
         return self._not_removed
 
+    def __repr__(self) -> str:
+        attrs = ", ".join(
+            f"{k}={v.__lazy_repr__() if isinstance(v, SubSystemObject) else repr(v)}"
+            for k, v in self.__dict__.items()
+            if not k.startswith("_")
+        )
+        return f"{self.__class__.__name__}({attrs})"
+
+    def __lazy_repr__(self) -> str:
+        return f"{self.__class__.__name__}(...)"
+
 
 T = typing.TypeVar("T", bound=SubSystemObject, contravariant=True)
 ST = typing.TypeVar("ST", bound=SubSystemObject)

@@ -1,3 +1,5 @@
+from typing import Any
+
 import sdl2
 
 from gamepart.subsystem import SubSystemObject
@@ -34,11 +36,11 @@ class GUIObject(SubSystemObject):
     def uninit_gui_system(self) -> None:
         del self.gui_system
 
-    def event(self, event: sdl2.SDL_Event) -> bool:
+    def event(self, event: sdl2.SDL_Event) -> Any:
         """Handle the event. Return True if event propagation should stop."""
         return False
 
-    def event_inside(self, event: sdl2.SDL_Event) -> bool:
+    def event_inside(self, event: sdl2.SDL_Event) -> Any:
         """Handle the event that is inside the object.
         Return True if event propagation should stop."""
         return False

@@ -34,13 +34,21 @@ class TestDispatcher:
         assert callback1 in dispatcher.callbacks["key1"]
         assert callback2 in dispatcher.callbacks["key1"]
 
-    def test_chain_registers_callback(self) -> None:
+    def test_chain_after_registers_callback(self) -> None:
         dispatcher: Dispatcher[str, str] = Dispatcher()
         callback = Mock()
 
-        dispatcher.chain(callback)
+        dispatcher.chain_after(callback)
 
-        assert callback in dispatcher.chained
+        assert callback in dispatcher.after_chained
+
+    def test_chain_before_registers_callback(self) -> None:
+        dispatcher: Dispatcher[str, str] = Dispatcher()
+        callback = Mock()
+
+        dispatcher.chain_before(callback)
+
+        assert callback in dispatcher.before_chained
 
     def test_call_invokes_matching_callbacks(self) -> None:
         dispatcher: Dispatcher[str, str] = Dispatcher()
@@ -60,26 +68,49 @@ class TestDispatcher:
 
         callback.assert_not_called()
 
-    def test_call_invokes_chained_callbacks_after_keyed(self) -> None:
+    def test_call_invokes_chain_after_callbacks_after_keyed(self) -> None:
         dispatcher: Dispatcher[str, str] = Dispatcher()
         call_order: list[str] = []
         keyed_callback = Mock(side_effect=lambda _: call_order.append("keyed"))
-        chained_callback = Mock(side_effect=lambda _: call_order.append("chained"))
+        after_callback = Mock(side_effect=lambda _: call_order.append("after"))
 
         dispatcher.on("key1", keyed_callback)
-        dispatcher.chain(chained_callback)
+        dispatcher.chain_after(after_callback)
         dispatcher("key1")
 
-        assert call_order == ["keyed", "chained"]
+        assert call_order == ["keyed", "after"]
 
-    def test_call_invokes_chained_even_without_matching_key(self) -> None:
+    def test_call_invokes_chain_before_then_keyed_then_chain_after(self) -> None:
         dispatcher: Dispatcher[str, str] = Dispatcher()
-        chained_callback = Mock(return_value=None)
+        call_order: list[str] = []
+        before_callback = Mock(side_effect=lambda _: call_order.append("before"))
+        keyed_callback = Mock(side_effect=lambda _: call_order.append("keyed"))
+        after_callback = Mock(side_effect=lambda _: call_order.append("after"))
 
-        dispatcher.chain(chained_callback)
+        dispatcher.chain_before(before_callback)
+        dispatcher.on("key1", keyed_callback)
+        dispatcher.chain_after(after_callback)
+        dispatcher("key1")
+
+        assert call_order == ["before", "keyed", "after"]
+
+    def test_call_invokes_chain_after_even_without_matching_key(self) -> None:
+        dispatcher: Dispatcher[str, str] = Dispatcher()
+        after_callback = Mock(return_value=None)
+
+        dispatcher.chain_after(after_callback)
         dispatcher("any_key")
 
-        chained_callback.assert_called_once_with("any_key")
+        after_callback.assert_called_once_with("any_key")
+
+    def test_call_invokes_chain_before_even_without_matching_key(self) -> None:
+        dispatcher: Dispatcher[str, str] = Dispatcher()
+        before_callback = Mock(return_value=None)
+
+        dispatcher.chain_before(before_callback)
+        dispatcher("any_key")
+
+        before_callback.assert_called_once_with("any_key")
 
     def test_call_stops_propagation_when_callback_returns_truthy(self) -> None:
         dispatcher: Dispatcher[str, str] = Dispatcher()
@@ -94,17 +125,33 @@ class TestDispatcher:
         callback2.assert_not_called()
         assert result is True
 
-    def test_call_stops_propagation_before_chained(self) -> None:
+    def test_call_stops_propagation_before_chain_after(self) -> None:
         dispatcher: Dispatcher[str, str] = Dispatcher()
         keyed_callback = Mock(return_value=True)
-        chained_callback = Mock(return_value=None)
+        after_callback = Mock(return_value=None)
 
         dispatcher.on("key1", keyed_callback)
-        dispatcher.chain(chained_callback)
+        dispatcher.chain_after(after_callback)
         dispatcher("key1")
 
         keyed_callback.assert_called_once()
-        chained_callback.assert_not_called()
+        after_callback.assert_not_called()
+
+    def test_call_stops_propagation_when_chain_before_returns_truthy(self) -> None:
+        dispatcher: Dispatcher[str, str] = Dispatcher()
+        before_callback = Mock(return_value=True)
+        keyed_callback = Mock(return_value=None)
+        after_callback = Mock(return_value=None)
+
+        dispatcher.chain_before(before_callback)
+        dispatcher.on("key1", keyed_callback)
+        dispatcher.chain_after(after_callback)
+        result = dispatcher("key1")
+
+        before_callback.assert_called_once_with("key1")
+        keyed_callback.assert_not_called()
+        after_callback.assert_not_called()
+        assert result is True
 
     def test_call_passes_data_to_callback(self) -> None:
         dispatcher: Dispatcher[str, str] = Dispatcher()
@@ -126,12 +173,14 @@ class TestDispatcher:
         dispatcher: Dispatcher[str, str] = Dispatcher()
         dispatcher.on("key1", Mock())
         dispatcher.on("key2", Mock())
-        dispatcher.chain(Mock())
+        dispatcher.chain_before(Mock())
+        dispatcher.chain_after(Mock())
 
         dispatcher.clear()
 
         assert len(dispatcher.callbacks) == 0
-        assert len(dispatcher.chained) == 0
+        assert len(dispatcher.before_chained) == 0
+        assert len(dispatcher.after_chained) == 0
 
     def test_noop_does_nothing(self) -> None:
         dispatcher: Dispatcher[str, str] = Dispatcher()
@@ -366,7 +415,7 @@ class TestDispatcherIntegration:
 
         key_dispatcher.attach_to(event_dispatcher)
         key_dispatcher.on_down(27, stopper)
-        event_dispatcher.chain(not_called)
+        event_dispatcher.chain_after(not_called)
 
         event = MockSDLEvent(event_type=sdl_keydown)
         event.key = MockKeyboardEvent(sym=27)  # type: ignore
@@ -375,3 +424,22 @@ class TestDispatcherIntegration:
 
         stopper.assert_called_once()
         not_called.assert_not_called()
+
+    def test_chain_before_runs_before_key_dispatcher(self) -> None:
+        event_dispatcher = EventDispatcher()
+        key_dispatcher = KeyboardEventDispatcher()
+        call_order: list[str] = []
+        before_callback = Mock(side_effect=lambda e: call_order.append("before"))
+        key_callback = Mock(side_effect=lambda e: call_order.append("key"))
+        sdl_keydown = 768
+
+        key_dispatcher.attach_to(event_dispatcher)
+        event_dispatcher.chain_before(before_callback)
+        key_dispatcher.on_down(27, key_callback)
+
+        event = MockSDLEvent(event_type=sdl_keydown)
+        event.key = MockKeyboardEvent(sym=27)  # type: ignore
+
+        event_dispatcher(event)  # type: ignore
+
+        assert call_order == ["before", "key"]

@@ -1,7 +1,84 @@
-"""Tests for ConsoleService and BufferedConsole classes."""
+"""Tests for ConsoleService, BufferedConsole, and Console classes."""
 
 import pytest
-from gamepart.gui.console import BufferedConsole, ConsoleService
+from gamepart.gui.console import BufferedConsole, Console, ConsoleService
+
+
+class TestConsoleWrapLines:
+    """Test Console.wrap_lines method."""
+
+    @pytest.fixture
+    def console(self) -> Console:
+        return Console()
+
+    def test_empty_string_unchanged(self, console: Console) -> None:
+        assert console.wrap_lines("") == ""
+
+    def test_short_line_unchanged(self, console: Console) -> None:
+        console.wrap_width = 80
+        assert console.wrap_lines("hello") == "hello"
+
+    def test_line_at_exact_width_unchanged(self, console: Console) -> None:
+        console.wrap_width = 5
+        assert console.wrap_lines("12345") == "12345"
+
+    def test_long_line_split(self, console: Console) -> None:
+        console.wrap_width = 5
+        assert console.wrap_lines("1234567890") == "12345\n67890"
+
+    def test_long_line_split_with_remainder(self, console: Console) -> None:
+        console.wrap_width = 4
+        assert console.wrap_lines("1234567") == "1234\n567"
+
+    def test_multiple_lines_each_wrapped(self, console: Console) -> None:
+        console.wrap_width = 3
+        result = console.wrap_lines("abc\ndefgh\nij")
+        assert result == "abc\ndef\ngh\nij"
+
+    def test_preserves_existing_newlines(self, console: Console) -> None:
+        console.wrap_width = 80
+        result = console.wrap_lines("line1\nline2\nline3")
+        assert result == "line1\nline2\nline3"
+
+    def test_explicit_wrap_width_none_uses_fallback(self, console: Console) -> None:
+        console.wrap_width = None
+        console.width = 640
+        console.font_size = 12
+        wrap_width = int(640 / 12 * 1.7)
+        long_line = "x" * (wrap_width + 10)
+        result = console.wrap_lines(long_line)
+        lines = result.split("\n")
+        assert len(lines) >= 2
+        assert all(len(line) <= wrap_width for line in lines)
+
+    def test_wrap_width_zero_single_char_lines(self, console: Console) -> None:
+        console.wrap_width = 1
+        assert console.wrap_lines("ab") == "a\nb"
+
+
+class TestConsoleWithWrapIntegration:
+    """Test that ConsoleService output works with Console.wrap_lines."""
+
+    def test_submit_and_wrap_produces_no_line_over_width(self) -> None:
+        console = Console()
+        console.wrap_width = 40
+        console.service.submit("x = 1")
+        console.service.submit("print('hello world')")
+        raw = console.service.get_history_output()
+        wrapped = console.wrap_lines(raw)
+        for line in wrapped.split("\n"):
+            assert len(line) <= 40
+
+    def test_long_output_wrapped(self) -> None:
+        console = Console()
+        console.wrap_width = 20
+        console.service.submit("'a' * 50")
+        raw = console.service.get_history_output()
+        wrapped = console.wrap_lines(raw)
+        lines = wrapped.split("\n")
+        assert len(lines) >= 2
+        for line in lines:
+            assert len(line) <= 20
 
 
 class TestBufferedConsole:

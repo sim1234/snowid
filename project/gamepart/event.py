@@ -63,8 +63,9 @@ class Dispatcher(typing.Generic[KeyT, DataT]):
     """
 
     def __init__(self) -> None:
+        self.before_chained: list[typing.Callable[[DataT], typing.Any]] = []
         self.callbacks: dict[KeyT, list[typing.Callable[[DataT], typing.Any]]] = {}
-        self.chained: list[typing.Callable[[DataT], typing.Any]] = []
+        self.after_chained: list[typing.Callable[[DataT], typing.Any]] = []
 
     def on(self, key: KeyT, callback: typing.Callable[[DataT], typing.Any]) -> None:
         """Register a callback for a specific key."""
@@ -72,9 +73,13 @@ class Dispatcher(typing.Generic[KeyT, DataT]):
             self.callbacks[key] = []
         self.callbacks[key].append(callback)
 
-    def chain(self, callback: typing.Callable[[DataT], typing.Any]) -> None:
+    def chain_before(self, callback: typing.Callable[[DataT], typing.Any]) -> None:
+        """Register a callback that runs for all data, before keyed callbacks."""
+        self.before_chained.append(callback)
+
+    def chain_after(self, callback: typing.Callable[[DataT], typing.Any]) -> None:
         """Register a callback that runs for all data, after keyed callbacks."""
-        self.chained.append(callback)
+        self.after_chained.append(callback)
 
     @staticmethod
     def get_key(data: DataT) -> KeyT:
@@ -84,16 +89,20 @@ class Dispatcher(typing.Generic[KeyT, DataT]):
     def __call__(self, data: DataT) -> typing.Any:
         """Dispatch data to matching callbacks. Returns first truthy callback result."""
         key = self.get_key(data)
-        for callback in itertools.chain(self.callbacks.get(key, []), self.chained):
+        for callback in itertools.chain(
+            self.before_chained, self.callbacks.get(key, []), self.after_chained
+        ):
             ret = callback(data)
             if ret:
+                logger.debug(f"Event propagation stopped by {callback!r}: {ret!r}")
                 return ret
         return None
 
     def clear(self) -> None:
         """Remove all registered callbacks."""
+        self.before_chained.clear()
         self.callbacks.clear()
-        self.chained.clear()
+        self.after_chained.clear()
 
     def noop(self, data: DataT) -> None:
         """Callback placeholder that does nothing."""

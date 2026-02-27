@@ -27,7 +27,7 @@ class MyBaseScene(SimpleScene):
         self.keyboard_event.on_down(sdl2.SDLK_F1, self.toggle_console)
         self.keyboard_event.on_up(sdl2.SDLK_F1, self.keyboard_event.stop)
         self.keyboard_event.on_up(sdl2.SDLK_F3, self.toggle_fps)
-        self.event_dispatcher.chain(self.gui.event)
+        self.event_dispatcher.chain_before(self.gui.event)
 
     def every_frame(self, renderer: GfxRenderer) -> None:
         self.gui.draw()

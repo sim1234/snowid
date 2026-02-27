@@ -20,10 +20,10 @@ class ButtonMixin:
         self.event_type = event_type
         self.event_button = event_button
 
-    def event_inside(self, event: sdl2.SDL_Event) -> bool:
+    def event_inside(self, event: sdl2.SDL_Event) -> Any:
         if event.type == self.event_type:
             if event.button.button == self.event_button:
                 if self.on_click:
                     self.on_click()
-                return True
+                    return self.on_click
         return False
