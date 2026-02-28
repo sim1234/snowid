@@ -199,3 +199,5 @@ fabric.properties
 # Editor-based Rest Client
 .idea
 
+# game files
+key_binds.json

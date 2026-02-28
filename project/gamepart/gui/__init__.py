@@ -1,4 +1,4 @@
-from .button import ButtonMixin  # noqa: F401
+from .button import OnClickMixin, OnHoverMixin  # noqa: F401
 from .console import Console  # noqa: F401
 from .guiobject import GUIObject  # noqa: F401
 from .image import Image  # noqa: F401

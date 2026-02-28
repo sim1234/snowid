@@ -34,7 +34,8 @@ class GUIObject(SubSystemObject):
         self.gui_system = gui_system
 
     def uninit_gui_system(self) -> None:
-        del self.gui_system
+        if hasattr(self, "gui_system"):
+            del self.gui_system
 
     def event(self, event: sdl2.SDL_Event) -> Any:
         """Handle the event. Return True if event propagation should stop."""

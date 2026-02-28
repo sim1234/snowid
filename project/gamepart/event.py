@@ -9,6 +9,12 @@ import sdl2.ext
 logger = logging.getLogger(__name__)
 
 
+def _callback_name(callback: typing.Any) -> str:
+    if hasattr(callback, "__self__") and hasattr(callback, "__name__"):
+        return f"{type(callback.__self__).__name__}.{callback.__name__}"
+    return getattr(callback, "__name__", repr(callback))
+
+
 class UserEventType:
     """Factory for custom SDL2 user events.
 
@@ -94,7 +100,8 @@ class Dispatcher(typing.Generic[KeyT, DataT]):
         ):
             ret = callback(data)
             if ret:
-                logger.debug(f"Event propagation stopped by {callback!r}: {ret!r}")
+                _name = _callback_name(callback)
+                logger.debug(f"Event propagation stopped by {_name}: {ret!r}")
                 return ret
         return None
 
@@ -103,6 +110,10 @@ class Dispatcher(typing.Generic[KeyT, DataT]):
         self.before_chained.clear()
         self.callbacks.clear()
         self.after_chained.clear()
+
+    def remove_key(self, key: KeyT) -> None:
+        """Remove all callbacks registered for the given key."""
+        self.callbacks.pop(key, None)
 
     def noop(self, data: DataT) -> None:
         """Callback placeholder that does nothing."""

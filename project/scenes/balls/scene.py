@@ -3,6 +3,7 @@ import typing
 
 import sdl2
 import sdl2.ext
+from context import MyContext
 from gamepart.context import Context
 from gamepart.physics import PhysicalObject, World, pymunk
 from gamepart.physics.vector import Vector
@@ -30,6 +31,7 @@ class BallScene(MyBaseScene):
         self.player_ctrl: PlayerController
         self.terrain_chunk_manager: TerrainChunkManager
         self.last_click: tuple[float, float] = (0, 0)
+        self._ball_key_bind_keys: set[tuple[int, int]] = set()
 
     def init(self) -> None:
         super().init()
@@ -42,8 +44,6 @@ class BallScene(MyBaseScene):
         self.viewport.change_zoom(0.5)
         self.system.add(self.viewport)
 
-        self.keyboard_event.on_up(sdl2.SDLK_F2, self.switch_to_test)
-        self.keyboard_event.on_down(sdl2.SDLK_w, self.player_jump)
         self.mouse_button_event.on_down(sdl2.SDL_BUTTON_LEFT, self.start_drag)
         self.mouse_button_event.on_up(sdl2.SDL_BUTTON_LEFT, self.end_drag)
         self.mouse_button_event.on_up(sdl2.SDL_BUTTON_RIGHT, self.delete_ball)
@@ -51,11 +51,24 @@ class BallScene(MyBaseScene):
 
         self.player = Player(position=(200, 300))
         self.player_ctrl = PlayerController(self.player)
-        self.keyboard_event.on_down(sdl2.SDLK_e, self.player_ctrl.setter("shoot", True))
 
     def start(self, context: Context) -> None:
         self.system.clear_all()
         super().start(context)
+        if isinstance(context, MyContext):
+            for key in self._ball_key_bind_keys:
+                self.keyboard_event.remove_key(key)
+            self._ball_key_bind_keys.clear()
+            kb = context.key_binds
+            self.keyboard_event.on_up(kb.get("switch_scene"), self.switch_to_test)
+            self.keyboard_event.on_down(kb.get("jump"), self.player_jump)
+            self.keyboard_event.on_down(
+                kb.get("shoot"),
+                self.player_ctrl.setter("shoot", True),
+            )
+            self._ball_key_bind_keys.add((sdl2.SDL_KEYUP, kb.get("switch_scene")))
+            self._ball_key_bind_keys.add((sdl2.SDL_KEYDOWN, kb.get("jump")))
+            self._ball_key_bind_keys.add((sdl2.SDL_KEYDOWN, kb.get("shoot")))
         if self.game.sprite_factory is None:
             return
         create_ui(self.gui)
@@ -121,9 +134,18 @@ class BallScene(MyBaseScene):
             self.player_ctrl.input.jump = True
 
     def tick(self, delta: float) -> None:
-        self.player_ctrl.input.left = bool(self.game.key_state[sdl2.SDL_SCANCODE_A])
-        self.player_ctrl.input.right = bool(self.game.key_state[sdl2.SDL_SCANCODE_D])
-        self.player_ctrl.input.shoot = bool(self.game.key_state[sdl2.SDL_SCANCODE_E])
+        if isinstance(self.context, MyContext):
+            kb = self.context.key_binds
+            scancode_left = sdl2.SDL_GetScancodeFromKey(kb.get("move_left"))
+            scancode_right = sdl2.SDL_GetScancodeFromKey(kb.get("move_right"))
+            scancode_shoot = sdl2.SDL_GetScancodeFromKey(kb.get("shoot"))
+        else:
+            scancode_left = sdl2.SDL_SCANCODE_A
+            scancode_right = sdl2.SDL_SCANCODE_D
+            scancode_shoot = sdl2.SDL_SCANCODE_E
+        self.player_ctrl.input.left = bool(self.game.key_state[scancode_left])
+        self.player_ctrl.input.right = bool(self.game.key_state[scancode_right])
+        self.player_ctrl.input.shoot = bool(self.game.key_state[scancode_shoot])
         self.player_ctrl.control(self.game.world_time, delta)
         self.world.tick(delta)
         self.chunk_manager.update(self.player.position)
@@ -133,7 +155,7 @@ class BallScene(MyBaseScene):
     def every_frame(self, renderer: GfxRenderer) -> None:
         renderer.clear(self.bg_color)
         self.viewport.draw()
-        super().every_frame(renderer)
+        self.gui.draw()
 
     def _update_fallen_objects(self) -> None:
         for obj in self.world.get_objects(PhysicalObject):

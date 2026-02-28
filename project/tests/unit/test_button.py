@@ -1,10 +1,10 @@
 """Tests for Button component."""
 
-from gamepart.gui.button import ButtonMixin
+from gamepart.gui.button import OnClickMixin, OnHoverMixin
 from gamepart.gui.text import Text
 
 
-class Button(ButtonMixin, Text):
+class Button(OnClickMixin, OnHoverMixin, Text):
     pass
 
 

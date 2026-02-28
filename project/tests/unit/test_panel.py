@@ -130,23 +130,19 @@ class TestPanelRearrangeBlocks:
 
         assert child1.x == 0
         assert child2.x == 60
-        # width includes trailing margin: 0 + 50 + 10 + 60 + 10 = 130
-        assert panel.width == 130
+        # width = left edge + child1 + margin + child2, no trailing margin
+        assert panel.width == 120
 
     def test_rearrange_blocks_with_padding(self) -> None:
         panel = Panel()
         child1 = MockChild(width=50, height=30)
         panel.add_child(child1)
 
-        # padding = (left, top, right, bottom), but impl uses (top, left, bottom, right)
         panel.rearrange_blocks(padding=(5, 10, 15, 20), flow="horizontal")
 
-        # x starts at padding[1]=10, y starts at padding[0]=5
-        assert child1.x == 10
+        assert child1.x == 20
         assert child1.y == 5
-        # width = (10 + 50) + 20 = 80
         assert panel.width == 80
-        # height = max(5, 5 + 30) + 15 = 35 + 15 = 50
         assert panel.height == 50
 
 

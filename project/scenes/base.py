@@ -1,6 +1,6 @@
 import typing
 
-import sdl2.ext
+import sdl2
 from context import MyContext
 from gamepart import SimpleScene
 from gamepart.context import Context
@@ -13,6 +13,7 @@ class MyBaseScene(SimpleScene):
         super().__init__(*args, **kwargs)
         self.gui: GUISystem
         self.console: Console
+        self._key_bind_keys: set[tuple[int, int]] = set()
 
     def init(self) -> None:
         super().init()
@@ -24,12 +25,10 @@ class MyBaseScene(SimpleScene):
             self.game.height,
         )
         self.system.add(self.gui)
-        self.keyboard_event.on_down(sdl2.SDLK_F1, self.toggle_console)
-        self.keyboard_event.on_up(sdl2.SDLK_F1, self.keyboard_event.stop)
-        self.keyboard_event.on_up(sdl2.SDLK_F3, self.toggle_fps)
         self.event_dispatcher.chain_before(self.gui.event)
 
     def every_frame(self, renderer: GfxRenderer) -> None:
+        renderer.clear((0, 0, 0, 255))
         self.gui.draw()
 
     def toggle_console(self, _: typing.Any = None) -> None:
@@ -55,6 +54,16 @@ class MyBaseScene(SimpleScene):
         super().start(context)
         if not isinstance(context, MyContext):
             return
+        for key in self._key_bind_keys:
+            self.keyboard_event.remove_key(key)
+        self._key_bind_keys.clear()
+        kb = context.key_binds
+        self.keyboard_event.on_down(kb.get("console"), self.toggle_console)
+        self.keyboard_event.on_up(kb.get("console"), self.keyboard_event.stop)
+        self.keyboard_event.on_up(kb.get("toggle_fps"), self.toggle_fps)
+        self._key_bind_keys.add((sdl2.SDL_KEYDOWN, kb.get("console")))
+        self._key_bind_keys.add((sdl2.SDL_KEYUP, kb.get("console")))
+        self._key_bind_keys.add((sdl2.SDL_KEYUP, kb.get("toggle_fps")))
         if context.console is None:
             self.console = Console({"game": self.game})
             self.console.visible = False

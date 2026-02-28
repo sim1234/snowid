@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 import sdl2.ext
 
 from gamepart.utils import cached_depends_on
@@ -7,6 +9,8 @@ from gamepart.utils import cached_depends_on
 from .guiobject import GUIObject
 from .image import Image
 from .system import GUISystem
+
+logger = logging.getLogger(__name__)
 
 
 class Text(Image):
@@ -37,6 +41,7 @@ class Text(Image):
     )
     def get_rendered_text(self, manager: GUISystem) -> sdl2.ext.Sprite | None:
         if self.text:
+            logger.debug(f"Rendering text: {self.text}")
             surface = manager.font_manager.render(
                 self.text,
                 alias=self.font,

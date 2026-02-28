@@ -1,4 +1,4 @@
-from gamepart.gui.button import ButtonMixin
+from gamepart.gui.button import OnClickMixin, OnHoverMixin
 from gamepart.gui.guiobject import GUIObject
 from gamepart.gui.panel import Panel
 from gamepart.gui.paragraph import Paragraph, ScrollableParagraph
@@ -7,7 +7,7 @@ from gamepart.gui.text import Text
 from gamepart.gui.textinput import TextInput
 
 
-class Button(ButtonMixin, Text):  # noqa: F821
+class Button(OnClickMixin, OnHoverMixin, Text):  # noqa: F821
     pass
 
 
