@@ -42,7 +42,7 @@ class MyBaseScene(SimpleScene):
             self.gui.change_focus(self.console)
 
     def toggle_fps(self, _: typing.Any = None) -> None:
-        self.game.show_fps = not self.game.show_fps
+        self.game.fps_display_config.display = not self.game.fps_display_config.display
 
     def stop(self) -> MyContext:
         context = super().stop()

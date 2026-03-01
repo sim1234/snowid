@@ -17,6 +17,16 @@ from .utils import format_event, get_mouse_state
 logger = logging.getLogger(__name__)
 
 
+class FPSDisplayConfig:
+    display: bool = False
+    size: int = 8
+    color: tuple[int, int, int, int] = (200, 200, 50, 255)
+    bg_color: tuple[int, int, int, int] = (10, 10, 10, 255)
+    width: int = 500
+    position: tuple[int, int] = (0, 0)
+    font: str | None = None
+
+
 class Game:
     """Main game wrapper"""
 
@@ -25,12 +35,13 @@ class Game:
     def __init__(self) -> None:
         logger.debug("Starting")
         self.init()
+        self.fps_display_config = FPSDisplayConfig()
 
         self.config: dict[str, typing.Any] = self.get_config()
         self.width: int = self.config["width"]
         self.height: int = self.config["height"]
         self.max_fps: float = self.config["max_fps"]
-        self.show_fps: bool = self.config["show_fps"]
+        self.fps_display_config.display = self.config["show_fps"]
         self.caption: str = self.config["caption"]
         self.fullscreen: bool = self.config["fullscreen"]
         self.time_step: float = self.config["time_step"]
@@ -120,8 +131,8 @@ class Game:
         self.renderer.present()
 
     def display_fps(self) -> None:
-        fps = int(self.fps_counter.get_fps())
-        logger.debug(f"FPS={fps}")
+        summary = self.fps_counter.get_fps_summary()
+        logger.debug("FPS:\n%s", summary)
         if (
             self.font_manager is None
             or self.sprite_factory is None
@@ -129,9 +140,19 @@ class Game:
         ):
             return
         text = self.font_manager.render(
-            f"{fps}", size=8, color=(200, 200, 50), bg_color=(10, 10, 10)
+            text=summary,
+            alias=self.fps_display_config.font,
+            size=self.fps_display_config.size,
+            color=self.fps_display_config.color,
+            bg_color=self.fps_display_config.bg_color,
+            width=self.fps_display_config.width,
         )
-        pos = (0, 0, text.w, text.h)
+        pos = (
+            self.fps_display_config.position[0],
+            self.fps_display_config.position[1],
+            text.w,
+            text.h,
+        )
         text = self.sprite_factory.from_surface(text, True)
         self.renderer.copy(text, None, pos)
 
@@ -147,7 +168,7 @@ class Game:
         self.tick()
         self.active_scene.frame()
         self.fps_counter.frame()
-        if self.show_fps:
+        if self.fps_display_config.display:
             self.display_fps()
         self.fps_counter.target_fps(self.max_fps)
         if self.renderer is not None:

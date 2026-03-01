@@ -61,28 +61,79 @@ class TestFPSCounter:
         assert len(counter.history) == 2
         counter.clear()
         assert len(counter.history) == 0
+        assert len(counter.sleep_history) == 0
+
+    def test_clear_also_clears_sleep_history(self) -> None:
+        """Test that clear() resets sleep_history."""
+        counter = FPSCounter(maxlen=10)
+        for _ in range(3):
+            counter.frame()
+            time.sleep(0.001)
+        counter.target_fps(1000.0)
+        assert len(counter.sleep_history) > 0
+        counter.clear()
+        assert len(counter.sleep_history) == 0
+
+    def test_default_maxlen(self) -> None:
+        """Test that default maxlen is 120."""
+        counter = FPSCounter()
+        assert counter.history.maxlen == 120
+        assert counter.sleep_history.maxlen == 120
+
+    def test_get_fps_summary_empty(self) -> None:
+        """Test get_fps_summary with no data."""
+        counter = FPSCounter(maxlen=10)
+        assert counter.get_fps_summary() == "No data"
+
+    def test_get_fps_summary_with_data(self) -> None:
+        """Test get_fps_summary returns structured summary."""
+        counter = FPSCounter(maxlen=10)
+        for _ in range(4):
+            counter.frame()
+            time.sleep(0.005)
+            counter.target_fps(60.0)
+        summary = counter.get_fps_summary()
+        assert "FPS" in summary
+        assert "Total" in summary
+        assert "Frame" in summary
+        assert "Usage" in summary
+        assert "avg" in summary
+        assert "min" in summary
+        assert "max" in summary
+        assert "last" in summary
+
+    def test_target_fps_with_recent(self) -> None:
+        """Test target_fps with explicit recent parameter."""
+        counter = FPSCounter(maxlen=10)
+        for _ in range(5):
+            counter.frame()
+            time.sleep(0.01)
+        counter.target_fps(30.0, recent=3)
+        assert len(counter.sleep_history) == 1
+
+    def test_frame_return_value_is_inverse_of_delta(self) -> None:
+        """Test that frame() returns instantaneous FPS (1/delta)."""
+        counter = FPSCounter(maxlen=10)
+        time.sleep(0.02)
+        fps = counter.frame()
+        assert fps > 0
+        assert 30 < fps < 70
 
     def test_target_fps_no_sleep(self) -> None:
         """Test target_fps when no sleep is needed."""
         counter = FPSCounter(maxlen=10)
-        # Record slow frames (low FPS)
         for _ in range(5):
             counter.frame()
-            time.sleep(0.1)  # 100ms per frame = 10 FPS
-        # Requesting 5 FPS should not require sleep
+            time.sleep(0.1)
         counter.target_fps(5.0)
-        # Should complete without error
 
     def test_target_fps_with_sleep(self) -> None:
         """Test target_fps when sleep is needed."""
         counter = FPSCounter(maxlen=10)
-        # Record fast frames (high FPS)
         for _ in range(5):
             counter.frame()
-            time.sleep(0.001)  # 1ms per frame = 1000 FPS
-        # Requesting 60 FPS should require sleep
+            time.sleep(0.001)
         counter.target_fps(60.0)
-        # Should complete without error
 
 
 class TestTimeFeeder:

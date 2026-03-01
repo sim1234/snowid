@@ -13,6 +13,11 @@ RESOURCES = os.path.join(ROOT, "resources")
 class MyGame(Game):
     context_class = MyContext
 
+    def __init__(self) -> None:
+        super().__init__()
+        self.fps_display_config.font = "console"
+        self.fps_display_config.size = 14
+
     def get_initial_context(self) -> MyContext:
         return self.context_class(
             last_scene=self.active_scene,
@@ -33,6 +38,9 @@ class MyGame(Game):
     def init_heavy(self) -> None:
         if self.font_manager is None:
             return
+        self.font_manager.add(
+            os.path.join(RESOURCES, "PixelFJVerdana12pt.ttf"), "pixel"
+        )
         self.font_manager.add(os.path.join(RESOURCES, "Hack-Regular.ttf"), "console")
         self.font_manager.add(os.path.join(RESOURCES, "OpenSans-Regular.ttf"), "sans")
 
