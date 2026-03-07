@@ -44,6 +44,7 @@ class Game:
         self.fps_display_config.display = self.config["show_fps"]
         self.caption: str = self.config["caption"]
         self.fullscreen: bool = self.config["fullscreen"]
+        self.hidden: bool = self.config["hidden"]
         self.time_step: float = self.config["time_step"]
         self.time_speed: float = self.config["time_speed"]
         self.time_max_iter: int = self.config["time_max_iter"]
@@ -88,10 +89,12 @@ class Game:
         flags = None
         if self.fullscreen:
             flags = sdl2.SDL_WINDOW_FULLSCREEN
+        elif self.hidden:
+            flags = sdl2.SDL_WINDOW_HIDDEN
         self.window = sdl2.ext.Window(
             self.caption, size=(self.width, self.height), flags=flags
         )
-        if self.window is not None:
+        if self.window is not None and not self.hidden:
             self.window.show()
 
     def init_renderer(self) -> None:
@@ -233,6 +236,7 @@ class Game:
             "max_fps": 128,
             "show_fps": False,
             "fullscreen": False,
+            "hidden": False,
             "time_step": 1 / 128,
             "time_speed": 1.0,
             "time_max_iter": 8,

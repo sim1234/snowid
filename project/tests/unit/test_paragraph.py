@@ -112,13 +112,19 @@ class TestScrollableParagraph:
         assert sp.valign == "bottom"
 
     def test_scroll_offset_setter_clamps(self) -> None:
-        sp = ScrollableParagraph(text="x", height=100)
-        sp._get_content_height = lambda: 50
+        class StubScrollableParagraph(ScrollableParagraph):
+            def _get_content_height(self) -> int:
+                return 50
+
+        sp = StubScrollableParagraph(text="x", height=100)
         sp.scroll_offset = 100
         assert sp.scroll_offset == 0.0
 
     def test_target_scroll_offset_setter_clamps(self) -> None:
-        sp = ScrollableParagraph(text="x", height=100)
-        sp._get_content_height = lambda: 50
+        class StubScrollableParagraph(ScrollableParagraph):
+            def _get_content_height(self) -> int:
+                return 50
+
+        sp = StubScrollableParagraph(text="x", height=100)
         sp.target_scroll_offset = 100
         assert sp.target_scroll_offset == 0.0

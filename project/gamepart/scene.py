@@ -75,9 +75,6 @@ class SimpleScene(Scene):
         self.event_dispatcher = EventDispatcher()
         self.keyboard_event = KeyboardEventDispatcher()
         self.mouse_button_event = MouseButtonEventDispatcher()
-        self.mouse_button_event.attach_to(self.event_dispatcher)
-        self.keyboard_event.attach_to(self.event_dispatcher)
-        self.event_dispatcher.on(sdl2.SDL_QUIT, lambda _: self.exit())
 
     def event(self, event: sdl2.SDL_Event) -> None:
         """Handle event via dispatcher"""
@@ -85,7 +82,16 @@ class SimpleScene(Scene):
 
     def start(self, context: Context) -> None:
         self.is_first_frame = True
+        self.mouse_button_event.attach_to(self.event_dispatcher)
+        self.keyboard_event.attach_to(self.event_dispatcher)
+        self.event_dispatcher.on(sdl2.SDL_QUIT, self.exit)
         super().start(context)
+
+    def stop(self) -> Context:
+        self.event_dispatcher.clear()
+        self.keyboard_event.clear()
+        self.mouse_button_event.clear()
+        return super().stop()
 
     def frame(self) -> None:
         self.system.remove_queued_all()
@@ -95,14 +101,11 @@ class SimpleScene(Scene):
         self.every_frame(self.game.renderer)
 
     def uninit(self) -> None:
-        self.event_dispatcher.clear()
-        self.keyboard_event.clear()
-        self.mouse_button_event.clear()
         self.system.clear_all()
         self.system.clear()
         super().uninit()
 
-    def exit(self) -> None:
+    def exit(self, ev: sdl2.SDL_Event) -> None:
         """Exit the game"""
         self.game.queue_scene_switch("exit")
 

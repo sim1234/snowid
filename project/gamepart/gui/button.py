@@ -5,6 +5,9 @@ from typing import Any
 
 import sdl2
 
+from .panel import Panel
+from .text import Text
+
 
 class OnClickMixin:
     def __init__(
@@ -16,7 +19,7 @@ class OnClickMixin:
         **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self.on_click: Callable[[], None] | None = on_click
+        self.on_click: Callable[[], Any] | None = on_click
         self.event_type = event_type
         self.event_button = event_button
 
@@ -65,3 +68,40 @@ class OnHoverMixin:
     def _on_hover(self, event: sdl2.SDL_Event) -> None:
         if self.on_hover is not None:
             self.on_hover()
+
+
+class PrettyButton(OnClickMixin, OnHoverMixin, Panel):
+    def __init__(
+        self,
+        *args: Any,
+        hover_color: tuple[int, int, int, int] | None = None,
+        hover_background_color: tuple[int, int, int, int] | None = None,
+        text: Text,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.text = text
+        self.base_color = self.text.color
+        self.base_background_color = self.text.background_color
+        self.text.background_color = None
+        self.background_color = self.base_background_color
+        self.hover_color = hover_color or self.base_color
+        self.hover_background_color = hover_background_color
+        self.add_child(text)
+
+    def _on_hover(self, event: sdl2.SDL_Event) -> None:
+        super()._on_hover(event)
+        self.text.color = self.hover_color
+        self.background_color = self.hover_background_color
+
+    def _on_unhover(self, event: sdl2.SDL_Event) -> None:
+        super()._on_unhover(event)
+        self.text.color = self.base_color
+        self.background_color = self.base_background_color
+
+    def fit_to_text(self, padding: tuple[int, int, int, int] = (0, 0, 0, 0)) -> None:
+        self.text.fit_to_text()
+        self.text.x = padding[3]
+        self.text.y = padding[0]
+        self.width = self.text.width + padding[1] + padding[3]
+        self.height = self.text.height + padding[0] + padding[2]

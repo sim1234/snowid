@@ -64,6 +64,15 @@ test-watch:
 run:
 	uv run python project/main.py
 
+run-debug:
+	LOG_LEVEL=10 uv run python project/main.py
+
+run-debug-extra:
+	LOG_LEVEL=0 uv run python -vv project/main.py
+
+run-prod:
+	LOG_LEVEL=40 uv run python -OO project/main.py
+
 run-shell:
 	uv run python project/shell.py
 

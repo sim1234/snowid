@@ -31,7 +31,6 @@ class BallScene(MyBaseScene):
         self.player_ctrl: PlayerController
         self.terrain_chunk_manager: TerrainChunkManager
         self.last_click: tuple[float, float] = (0, 0)
-        self._ball_key_bind_keys: set[tuple[int, int]] = set()
 
     def init(self) -> None:
         super().init()
@@ -44,33 +43,29 @@ class BallScene(MyBaseScene):
         self.viewport.change_zoom(0.5)
         self.system.add(self.viewport)
 
+        self.player = Player(position=(200, 300))
+        self.player_ctrl = PlayerController(self.player)
+
+    def start(self, context: Context) -> None:
+        super().start(context)
+        assert isinstance(context, MyContext)
+
         self.mouse_button_event.on_down(sdl2.SDL_BUTTON_LEFT, self.start_drag)
         self.mouse_button_event.on_up(sdl2.SDL_BUTTON_LEFT, self.end_drag)
         self.mouse_button_event.on_up(sdl2.SDL_BUTTON_RIGHT, self.delete_ball)
         self.event_dispatcher.on(sdl2.SDL_MOUSEWHEEL, self.change_zoom)
 
-        self.player = Player(position=(200, 300))
-        self.player_ctrl = PlayerController(self.player)
+        kb = context.key_binds
+        self.keyboard_event.on_up(kb.get("switch_scene"), self.switch_to_test)
+        self.keyboard_event.on_up(
+            sdl2.SDLK_ESCAPE, lambda e: self.game.queue_scene_switch("main_menu")
+        )
+        self.keyboard_event.on_down(kb.get("jump"), self.player_jump)
+        self.keyboard_event.on_down(
+            kb.get("shoot"),
+            self.player_ctrl.setter("shoot", True),
+        )
 
-    def start(self, context: Context) -> None:
-        self.system.clear_all()
-        super().start(context)
-        if isinstance(context, MyContext):
-            for key in self._ball_key_bind_keys:
-                self.keyboard_event.remove_key(key)
-            self._ball_key_bind_keys.clear()
-            kb = context.key_binds
-            self.keyboard_event.on_up(kb.get("switch_scene"), self.switch_to_test)
-            self.keyboard_event.on_down(kb.get("jump"), self.player_jump)
-            self.keyboard_event.on_down(
-                kb.get("shoot"),
-                self.player_ctrl.setter("shoot", True),
-            )
-            self._ball_key_bind_keys.add((sdl2.SDL_KEYUP, kb.get("switch_scene")))
-            self._ball_key_bind_keys.add((sdl2.SDL_KEYDOWN, kb.get("jump")))
-            self._ball_key_bind_keys.add((sdl2.SDL_KEYDOWN, kb.get("shoot")))
-        if self.game.sprite_factory is None:
-            return
         create_ui(self.gui)
         resources_path = os.path.join(
             os.path.dirname(
@@ -93,6 +88,10 @@ class BallScene(MyBaseScene):
             self.world.space.static_body,
         )
         self.chunk_manager.update(self.player.position)
+
+    def stop(self) -> MyContext:
+        self.system.clear_all()
+        return super().stop()
 
     def change_zoom(self, event: sdl2.SDL_Event) -> None:
         pos = self.viewport.to_world(self.game.mouse_state[0:2])

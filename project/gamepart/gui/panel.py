@@ -4,6 +4,7 @@ from collections.abc import Iterable
 from typing import Literal
 
 from .guiobject import GUIObject
+from .system import GUISystem
 
 
 class Panel(GUIObject):
@@ -20,13 +21,20 @@ class Panel(GUIObject):
         self.background_color: tuple[int, int, int, int] | None = background_color
 
     def add_child(self, child: GUIObject) -> GUIObject:
+        """Add a child to the panel.
+        You shouldn't add the child to the GUI system manually.
+        """
         child.parent = self
         self.children.append(child)
+        if hasattr(self, "gui_system"):
+            self.gui_system.add(child)
         return child
 
     def remove_child(self, child: GUIObject) -> GUIObject:
         child.parent = None
         self.children.remove(child)
+        if hasattr(self, "gui_system"):
+            self.gui_system.remove(child)
         return child
 
     def draw(self) -> None:
@@ -35,6 +43,11 @@ class Panel(GUIObject):
             self.gui_system.renderer.fill(
                 [(x, y, self.width, self.height)], self.background_color
             )
+
+    def init_gui_system(self, gui_system: GUISystem) -> None:
+        super().init_gui_system(gui_system)
+        for child in self.children:
+            self.gui_system.add(child)
 
     def rearrange_blocks(
         self,

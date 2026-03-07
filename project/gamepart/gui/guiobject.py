@@ -31,6 +31,7 @@ class GUIObject(SubSystemObject):
         raise NotImplementedError()
 
     def init_gui_system(self, gui_system: "GUISystem") -> None:
+        assert getattr(self, "gui_system", None) is None  # safegguard for multi add
         self.gui_system = gui_system
 
     def uninit_gui_system(self) -> None:

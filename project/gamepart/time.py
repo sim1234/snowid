@@ -154,7 +154,8 @@ class TimeFeeder:
             x += 1
             if max_iter and x > max_iter:
                 logger.warning(
-                    "World time is lagging by %d steps", self.lag // self.time_step
+                    "World time is lagging by %d steps",
+                    round(self.lag / self.time_step),
                 )
                 return
 

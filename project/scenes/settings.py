@@ -1,10 +1,11 @@
 import typing
+from collections.abc import Callable
 
 import sdl2
 from context import MyContext
 from gamepart.context import Context
 from gamepart.gui import Panel
-from gamepart.gui.button import OnClickMixin, OnHoverMixin
+from gamepart.gui.button import OnClickMixin, OnHoverMixin, PrettyButton
 from gamepart.gui.text import Text
 from settings import KeyBinds, load_key_binds, save_key_binds
 
@@ -27,18 +28,6 @@ ACTION_LABELS: dict[str, str] = {
     "toggle_fps": "Toggle FPS",
     "switch_scene": "Switch scene",
 }
-
-
-class SettingsButton(OnClickMixin, OnHoverMixin, Text):
-    def _on_hover(self, event: sdl2.SDL_Event) -> None:
-        super()._on_hover(event)
-        self.background_color = (80, 80, 80, 255)
-        self.color = (255, 255, 255, 255)
-
-    def _on_unhover(self, event: sdl2.SDL_Event) -> None:
-        super()._on_unhover(event)
-        self.background_color = None
-        self.color = (0, 0, 0, 255)
 
 
 class SettingsRow(OnClickMixin, OnHoverMixin, Panel):
@@ -73,6 +62,7 @@ class SettingsScene(MyBaseScene):
             height=400,
             background_color=(40, 40, 40, 255),
         )
+        gui.add(panel)
         for action in KeyBinds.ACTION_ORDER:
             row = SettingsRow(x=0, y=0, width=380, height=36)
             row.on_click = self._make_change_callback(action)
@@ -99,37 +89,48 @@ class SettingsScene(MyBaseScene):
             row.add_child(key_text)
             row.rearrange_blocks(flow="horizontal", padding=(4, 4, 4, 4), margin=4)
             panel.add_child(row)
+        sub_panel = Panel(
+            width=panel.width,
+        )
+        panel.add_child(sub_panel)
 
-        save_btn = SettingsButton(
-            width=120,
-            height=36,
-            text="Save",
-            font="sans",
-            font_size=16,
+        save_btn = PrettyButton(
+            text=Text(
+                text="Save",
+                font="sans",
+                font_size=14,
+                color=(0, 80, 0, 255),
+                background_color=None,
+            ),
+            hover_color=(255, 255, 255, 255),
+            hover_background_color=(80, 120, 80, 255),
+            on_click=self._save,
         )
-        save_btn.on_click = self._save
-        discard_btn = SettingsButton(
-            width=120,
-            height=36,
-            text="Discard",
-            font="sans",
-            font_size=16,
+        discard_btn = PrettyButton(
+            text=Text(
+                text="Discard",
+                font="sans",
+                font_size=14,
+                color=(80, 0, 0, 255),
+                background_color=None,
+            ),
+            hover_color=(255, 255, 255, 255),
+            hover_background_color=(120, 80, 80, 255),
+            on_click=self._discard,
         )
-        discard_btn.on_click = self._discard
-        panel.add_child(save_btn)
-        panel.add_child(discard_btn)
+        for btn in [save_btn, discard_btn]:
+            sub_panel.add_child(btn)
+            btn.fit_to_text(padding=(10, 50, 10, 50))
+        sub_panel.rearrange_blocks(flow="horizontal", margin=10)
         panel.rearrange_blocks(flow="vertical", padding=(10, 10, 10, 10), margin=6)
         panel.x = (self.game.width - panel.width) // 2
         panel.y = (self.game.height - panel.height) // 2
 
-        to_add: list[typing.Any] = [panel]
-        for child in panel.children:
-            to_add.append(child)
-            if hasattr(child, "children") and child.children:
-                to_add.extend(child.children)
-        gui.add(*to_add)
+        self.keyboard_event.on_up(
+            sdl2.SDLK_ESCAPE, lambda e: self.game.queue_scene_switch("main_menu")
+        )
 
-    def _make_change_callback(self, action: str):
+    def _make_change_callback(self, action: str) -> Callable[[], None]:
         def callback() -> None:
             self.listening_for_action = action
             if action in self._key_label_widgets:

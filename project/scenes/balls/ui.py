@@ -13,6 +13,7 @@ class Button(OnClickMixin, OnHoverMixin, Text):  # noqa: F821
 
 def create_ui(gui: GUISystem) -> list[GUIObject]:
     panel = Panel(x=10, y=10, width=100, height=100)
+    gui.add(panel)
     text_input = TextInput(
         x=10,
         y=10,
@@ -25,7 +26,12 @@ def create_ui(gui: GUISystem) -> list[GUIObject]:
     text_input.color = (255, 0, 0, 255)
     text = Text(x=10, y=10, width=100, height=100, text="Hello, world!")
     button = Button(x=10, y=10, width=100, height=100, text="Click me")
-    button.on_click = lambda: print("Button clicked")
+
+    def on_click() -> bool:
+        print("Button clicked")
+        return True
+
+    button.on_click = on_click
     paragraph = Paragraph(
         x=10,
         y=10,
@@ -50,6 +56,5 @@ def create_ui(gui: GUISystem) -> list[GUIObject]:
     panel.add_child(paragraph)
     panel.add_child(scrollable_paragraph)
     panel.rearrange_blocks(flow="vertical")
-    gui.add(panel, text_input, text, button, paragraph, scrollable_paragraph)
     gui.change_focus(text_input)
     return [panel, text_input, text, button, paragraph, scrollable_paragraph]
