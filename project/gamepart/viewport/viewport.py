@@ -127,4 +127,39 @@ class FlippedViewPort(ViewPort):
         return ((self.height - y) / self.zoom) + self.y  # flip y
 
 
+class CulledFlippedViewPort(FlippedViewPort):
+    __slots__ = ("renderer", "width", "height", "zoom", "x", "y", "cull_margin")
+
+    def __init__(
+        self,
+        renderer: GfxRenderer,
+        width: int,
+        height: int,
+        zoom: float = 1,
+        x: float = 0,
+        y: float = 0,
+        cull_margin: float = 100.0,
+    ) -> None:
+        super().__init__(renderer, width, height, zoom=zoom, x=x, y=y)
+        self.cull_margin = cull_margin
+
+    def _visible_world_rect(self) -> tuple[float, float, float, float]:
+        m = self.cull_margin
+        minx = self.x_to_world(0) - m
+        maxx = self.x_to_world(self.width) + m
+        miny = self.y_to_world(self.height) - m
+        maxy = self.y_to_world(0) + m
+        return minx, miny, maxx, maxy
+
+    def draw(self) -> None:
+        minx, miny, maxx, maxy = self._visible_world_rect()
+        margin = self.cull_margin
+        for obj in self.objects:
+            px, py = obj.position
+            r = getattr(obj, "radius", margin)
+            if px + r < minx or px - r > maxx or py + r < miny or py - r > maxy:
+                continue
+            obj.draw(self)
+
+
 from .graphicalobject import GraphicalObject  # noqa

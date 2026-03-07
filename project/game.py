@@ -51,5 +51,6 @@ class MyGame(Game):
         self.add_scene("settings", scenes.SettingsScene)
         self.add_scene("test", scenes.TestScene)
         self.add_scene("balls", scenes.BallScene)
+        self.add_scene("miner", scenes.MinerScene)
         super().init_scenes()
         self.queue_scene_switch("main_menu")

@@ -1,6 +1,9 @@
 import typing
+from logging import getLogger
 
 from gamepart.subsystem import SubSystemObject, SystemManager
+
+logger = getLogger(__name__)
 
 
 class Chunk:
@@ -43,12 +46,14 @@ class ChunkManager(typing.Generic[T]):
         pass
 
     def load_chunk(self, coord: tuple[int, int]) -> T:
+        logger.info(f"Loading chunk {coord}")
         chunk = self._load_chunk(coord)
         self._system.add_all(*chunk.objects)
         self._loaded_chunks[coord] = chunk
         return chunk
 
     def unload_chunk(self, coord: tuple[int, int]) -> T | None:
+        logger.info(f"Unloading chunk {coord}")
         chunk = self._loaded_chunks.pop(coord, None)
         if chunk is not None:
             self._unload_chunk(chunk)

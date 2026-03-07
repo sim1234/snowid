@@ -29,8 +29,8 @@ class MainMenuScene(MyBaseScene):
             background_color=(40, 40, 40, 255),
         )
         self.gui.add(panel)
-        start_btn = self._make_button("Start game", "balls")
-        start_game_2_btn = self._make_button("Start game 2", "balls")
+        start_btn = self._make_button("Start Balls", "balls")
+        start_game_2_btn = self._make_button("Start Miner", "miner")
         start_test_btn = self._make_button("Start test", "test")
         settings_btn = self._make_button("Settings", "settings")
         quit_btn = self._make_button("Quit", "exit")

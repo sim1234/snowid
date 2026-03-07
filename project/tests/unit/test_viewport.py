@@ -4,7 +4,7 @@ import typing
 from unittest.mock import MagicMock
 
 import pytest
-from gamepart.viewport import FlippedViewPort, ViewPort
+from gamepart.viewport import CulledFlippedViewPort, FlippedViewPort, ViewPort
 from gamepart.viewport.graphicalobject import GraphicalObject
 
 
@@ -383,3 +383,82 @@ class TestFlippedViewPortFollowTarget:
         )
 
         assert diff_x_regular == diff_x_flipped
+
+
+class TestCulledFlippedViewPort:
+    """Test CulledFlippedViewPort visible rect and culling."""
+
+    @pytest.fixture
+    def culled_viewport(self, mock_renderer: MagicMock) -> CulledFlippedViewPort:
+        return CulledFlippedViewPort(
+            mock_renderer,
+            width=800,
+            height=600,
+            zoom=1.0,
+            x=100.0,
+            y=200.0,
+            cull_margin=50.0,
+        )
+
+    def test_visible_world_rect_expands_by_cull_margin(
+        self, culled_viewport: CulledFlippedViewPort
+    ) -> None:
+        minx, miny, maxx, maxy = culled_viewport._visible_world_rect()
+        assert minx == pytest.approx(50.0)
+        assert maxx == pytest.approx(950.0)
+        assert miny == pytest.approx(150.0)
+        assert maxy == pytest.approx(850.0)
+
+    def test_visible_world_rect_respects_zoom(self, mock_renderer: MagicMock) -> None:
+        vp = CulledFlippedViewPort(
+            mock_renderer,
+            width=100,
+            height=100,
+            zoom=2.0,
+            x=0.0,
+            y=0.0,
+            cull_margin=10.0,
+        )
+        minx, miny, maxx, maxy = vp._visible_world_rect()
+        assert maxx - minx == pytest.approx(100.0 / 2.0 + 20.0)
+        assert maxy - miny == pytest.approx(100.0 / 2.0 + 20.0)
+
+    def test_draw_calls_only_objects_inside_visible_rect(
+        self, culled_viewport: CulledFlippedViewPort
+    ) -> None:
+        minx, miny, maxx, maxy = culled_viewport._visible_world_rect()
+        inside = MagicMock()
+        inside.position = (400.0, 400.0)
+        inside.radius = 5.0
+        outside_left = MagicMock()
+        outside_left.position = (minx - 10.0, 400.0)
+        outside_left.radius = 5.0
+        outside_right = MagicMock()
+        outside_right.position = (maxx + 10.0, 400.0)
+        outside_right.radius = 5.0
+        culled_viewport.objects = [inside, outside_left, outside_right]
+        culled_viewport.draw()
+        inside.draw.assert_called_once_with(culled_viewport)
+        outside_left.draw.assert_not_called()
+        outside_right.draw.assert_not_called()
+
+    def test_draw_uses_default_radius_when_missing(
+        self, culled_viewport: CulledFlippedViewPort
+    ) -> None:
+        obj_at_edge = MagicMock()
+        obj_at_edge.position = (95.0, 400.0)
+        del obj_at_edge.radius
+        culled_viewport.objects = [obj_at_edge]
+        culled_viewport.draw()
+        obj_at_edge.draw.assert_called_once_with(culled_viewport)
+
+    def test_draw_includes_object_touching_rect_boundary(
+        self, culled_viewport: CulledFlippedViewPort
+    ) -> None:
+        minx, miny, maxx, maxy = culled_viewport._visible_world_rect()
+        touching = MagicMock()
+        touching.position = (minx + 10.0, miny + 10.0)
+        touching.radius = 10.0
+        culled_viewport.objects = [touching]
+        culled_viewport.draw()
+        touching.draw.assert_called_once()
