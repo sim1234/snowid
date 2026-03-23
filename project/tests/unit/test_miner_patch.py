@@ -8,6 +8,7 @@ from scenes.miner.patch import (
     PATCH_RADIUS_PER_RICHNESS,
     RESOURCE_COLORS,
     ResourcePatch,
+    ResourceType,
     richness_to_radius,
 )
 
@@ -30,48 +31,48 @@ class TestRichnessToRadius:
 
 class TestResourcePatch:
     def test_init_sets_position_type_richness(self) -> None:
-        patch = ResourcePatch((50.0, 60.0), "iron", 100)
+        patch = ResourcePatch((50.0, 60.0), ResourceType.IRON, 100)
         assert patch.position == (50.0, 60.0)
-        assert patch.resource_type == "iron"
+        assert patch.resource_type is ResourceType.IRON
         assert patch.richness == 100
         assert patch.radius == richness_to_radius(100)
 
     def test_deplete_reduces_richness(self) -> None:
-        patch = ResourcePatch((0.0, 0.0), "copper", 50)
+        patch = ResourcePatch((0.0, 0.0), ResourceType.COPPER, 50)
         patch.deplete(10)
         assert patch.richness == 40
         patch.deplete(40)
         assert patch.richness == 0
 
     def test_deplete_does_not_go_below_zero(self) -> None:
-        patch = ResourcePatch((0.0, 0.0), "coal", 5)
+        patch = ResourcePatch((0.0, 0.0), ResourceType.COAL, 5)
         patch.deplete(10)
         assert patch.richness == 0
 
     def test_deplete_updates_radius(self) -> None:
-        patch = ResourcePatch((0.0, 0.0), "iron", 100)
+        patch = ResourcePatch((0.0, 0.0), ResourceType.IRON, 100)
         initial_radius = patch.radius
         patch.deplete(100)
         assert patch.radius < initial_radius
         assert patch.radius == pytest.approx(richness_to_radius(0))
 
     def test_contains_point_inside(self) -> None:
-        patch = ResourcePatch((10.0, 10.0), "iron", 100)
+        patch = ResourcePatch((10.0, 10.0), ResourceType.IRON, 100)
         assert patch.contains_point((10.0, 10.0)) is True
         assert patch.contains_point((10.0 + patch.radius * 0.5, 10.0)) is True
 
     def test_contains_point_on_edge(self) -> None:
-        patch = ResourcePatch((0.0, 0.0), "iron", 100)
+        patch = ResourcePatch((0.0, 0.0), ResourceType.IRON, 100)
         r = patch.radius
         assert patch.contains_point((r, 0.0)) is True
         assert patch.contains_point((r + 0.001, 0.0)) is False
 
     def test_contains_point_outside(self) -> None:
-        patch = ResourcePatch((0.0, 0.0), "iron", 10)
+        patch = ResourcePatch((0.0, 0.0), ResourceType.IRON, 10)
         assert patch.contains_point((100.0, 100.0)) is False
 
     def test_resource_colors_defined_for_all_types(self) -> None:
-        for resource_type in ("iron", "copper", "coal"):
+        for resource_type in ResourceType:
             assert resource_type in RESOURCE_COLORS
             color = RESOURCE_COLORS[resource_type]
             assert len(color) == 4

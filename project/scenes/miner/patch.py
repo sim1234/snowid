@@ -1,14 +1,19 @@
 import math
-from typing import Literal
+from enum import Enum
 
 from gamepart.viewport import Circle
 
-ResourceType = Literal["iron", "copper", "coal"]
+
+class ResourceType(str, Enum):
+    IRON = "iron"
+    COPPER = "copper"
+    COAL = "coal"
+
 
 RESOURCE_COLORS: dict[ResourceType, tuple[int, int, int, int]] = {
-    "iron": (70, 130, 200, 255),
-    "copper": (184, 115, 51, 255),
-    "coal": (40, 40, 40, 255),
+    ResourceType.IRON: (70, 130, 200, 255),
+    ResourceType.COPPER: (184, 115, 51, 255),
+    ResourceType.COAL: (40, 40, 40, 255),
 }
 
 PATCH_BASE_RADIUS = 12.0

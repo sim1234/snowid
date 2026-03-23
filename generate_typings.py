@@ -1041,6 +1041,51 @@ def infer_type_from_runtime(name: str, obj: Any) -> str:
     return "Any"
 
 
+def apply_numba_types() -> None:
+    """Apply post-processing replacements to numba module."""
+    print("\nApplying numba replacements...")
+    numba_stub_path = STUBS_DIR / "numba" / "__init__.pyi"
+    numba_stub_path.write_text("""from typing import Any, Callable, Iterator, TypeVar, overload
+
+_F = TypeVar("_F", bound=Callable[..., Any])
+
+@overload
+def njit(__func: _F) -> _F: ...
+@overload
+def njit(
+    *,
+    cache: bool = ...,
+    parallel: bool = ...,
+    nogil: bool = ...,
+    fastmath: bool = ...,
+    boundscheck: bool | None = ...,
+    inline: str | None = ...,
+    error_model: str = ...,
+) -> Callable[[_F], _F]: ...
+def njit(*args: Any, **kwargs: Any) -> Any: ...
+
+@overload
+def jit(__func: _F) -> _F: ...
+@overload
+def jit(
+    *,
+    cache: bool = ...,
+    parallel: bool = ...,
+    nogil: bool = ...,
+    fastmath: bool = ...,
+    boundscheck: bool | None = ...,
+    inline: str | None = ...,
+    error_model: str = ...,
+) -> Callable[[_F], _F]: ...
+def jit(*args: Any, **kwargs: Any) -> Any: ...
+
+@overload
+def prange(stop: int) -> Iterator[int]: ...
+@overload
+def prange(start: int, stop: int, step: int = ...) -> Iterator[int]: ...
+def prange(*args: int) -> Iterator[int]: ...
+""")
+
 def main() -> None:
     print("Generating stubs for sdl2...")
     run_stubgen()
@@ -1053,6 +1098,7 @@ def main() -> None:
     fix_wildcard_reexports()  # Ensure all __all__ symbols are re-exported
     print("\nApplying manual replacements...")
     apply_replacements()
+    apply_numba_replacements()
 
     if validate_stubs():
         print("\nDone! All stubs are valid.")

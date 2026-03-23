@@ -361,7 +361,6 @@ class NoiseDebugScene(MyBaseScene):
             persistence=p.persistence,
             lacunarity=p.lacunarity,
             scale=p.scale,
-            cache_size=0,
         )
         self._noise_display_params = p
         self._noise_bake_center_x = p.center_x
@@ -687,8 +686,8 @@ class NoiseDebugScene(MyBaseScene):
         self._inp_persistence = add_field_row("persistence", "0.45")
         self._inp_lacunarity = add_field_row("lacunarity", "2.0")
         self._inp_scale = add_field_row("scale", "420.0")
-        self._inp_threshold_low = add_field_row("low (red)", "-0.5")
-        self._inp_threshold_high = add_field_row("high (green)", "0.5")
+        self._inp_threshold_low = add_field_row("low (red)", "-0.42")
+        self._inp_threshold_high = add_field_row("high (green)", "0.42")
 
         self._inp_zoom = add_field_row("zoom", f"{self._zoom:g}")
 

@@ -1,4 +1,5 @@
 import math
+from logging import getLogger
 
 from gamepart.chunk import Chunk, ChunkManager
 from gamepart.noise import PerlinNoise
@@ -6,7 +7,7 @@ from gamepart.subsystem import SystemManager
 
 from .patch import ResourcePatch, ResourceType
 
-PATCH_GRID_STEP = 120
+PATCH_GRID_STEP = 50
 RICHNESS_BASE = 20
 RICHNESS_DISTANCE_FACTOR = 0.08
 RICHNESS_NOISE_SCALE = 50
@@ -14,6 +15,8 @@ RICHNESS_MIN = 10
 RICHNESS_MAX = 500
 PATCH_THRESHOLD = 0.42
 TYPE_SCALE = 200.0
+
+logger = getLogger(__name__)
 
 
 class ResourceChunk(Chunk):
@@ -30,29 +33,23 @@ class ResourceChunkManager(ChunkManager[ResourceChunk]):
         chunk_size: int = 512,
     ) -> None:
         super().__init__(system, chunk_size)
-        self._noise_patch = PerlinNoise(
+        self._noise_iron = PerlinNoise(
             seed=seed,
             octaves=3,
             persistence=0.45,
             scale=420.0,
         )
-        self._noise_iron = PerlinNoise(
-            seed=seed + 1000,
-            octaves=2,
-            persistence=0.5,
-            scale=TYPE_SCALE,
-        )
         self._noise_copper = PerlinNoise(
-            seed=seed + 2000,
-            octaves=2,
-            persistence=0.5,
-            scale=TYPE_SCALE,
+            seed=seed + 1,
+            octaves=3,
+            persistence=0.45,
+            scale=420.0,
         )
         self._noise_coal = PerlinNoise(
-            seed=seed + 3000,
-            octaves=2,
-            persistence=0.5,
-            scale=TYPE_SCALE,
+            seed=seed + 2,
+            octaves=3,
+            persistence=0.45,
+            scale=420.0,
         )
 
     def update(self, center: tuple[float, float], rings: int = 2) -> None:
@@ -75,9 +72,16 @@ class ResourceChunkManager(ChunkManager[ResourceChunk]):
         while x < x_end:
             y = y_start + PATCH_GRID_STEP // 2
             while y < y_end:
-                patch_val = self._noise_patch.get2d(x, y)
+                val_iron = self._noise_iron.get2d(x, y)
+                val_copper = self._noise_copper.get2d(x, y)
+                val_coal = self._noise_coal.get2d(x, y)
+                resource_type: ResourceType
+                patch_val, resource_type = max(
+                    (val_iron, ResourceType.IRON),
+                    (val_copper, ResourceType.COPPER),
+                    (val_coal, ResourceType.COAL),
+                )
                 if patch_val >= PATCH_THRESHOLD:
-                    resource_type = self._type_from_noise(x, y)
                     distance = math.hypot(x, y)
                     richness_raw = (
                         RICHNESS_BASE
@@ -101,10 +105,10 @@ class ResourceChunkManager(ChunkManager[ResourceChunk]):
         copper_val = self._noise_copper.get2d(x, y)
         coal_val = self._noise_coal.get2d(x, y)
         if iron_val >= copper_val and iron_val >= coal_val:
-            return "iron"
+            return ResourceType.IRON
         if copper_val >= coal_val:
-            return "copper"
-        return "coal"
+            return ResourceType.COPPER
+        return ResourceType.COAL
 
     def get_patch_at(self, world_pos: tuple[float, float]) -> ResourcePatch | None:
         for chunk in self._loaded_chunks.values():

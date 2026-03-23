@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-import array
 from collections.abc import Callable
 from dataclasses import dataclass
 
+import numpy as np
 from gamepart.noise import PerlinNoise
+from gamepart.noise_numba import fill_noise_rect_argb32
 
 NOISE_RENDER_TILE_GRID = 4
 
@@ -75,8 +76,8 @@ def render_noise_argb32_streaming(
         persistence=p.persistence,
         lacunarity=p.lacunarity,
         scale=p.scale,
-        cache_size=0,
     )
+    perm = noise.permutation_uint8
     wpp = 1.0 / p.zoom
     half_w = 0.5 * vw * wpp
     half_h = 0.5 * vh * wpp
@@ -86,7 +87,7 @@ def render_noise_argb32_streaming(
     high = p.high_threshold
     red_px = _argb_pixel(255, 0, 0)
     green_px = _argb_pixel(0, 255, 0)
-    buf = array.array("I", [_argb_pixel(0, 0, 0)]) * (vw * vh)
+    buf = np.zeros(vw * vh, dtype=np.uint32)
     col_ranges = _split_range(vw, parts)
     row_ranges = _split_range(vh, parts)
     for r0, r1 in row_ranges:
@@ -96,21 +97,28 @@ def render_noise_argb32_streaming(
             if r0 >= r1 or c0 >= c1:
                 continue
             tw, th = c1 - c0, r1 - r0
-            for row in range(r0, r1):
-                wy = start_y + row * wpp
-                base = row * vw
-                for col in range(c0, c1):
-                    wx = start_x + col * wpp
-                    value = noise.get2d(wx, wy)
-                    if value < low:
-                        buf[base + col] = red_px
-                    elif value > high:
-                        buf[base + col] = green_px
-                    else:
-                        g = int(max(0.0, min(255.0, (value + 1.0) * 127.5)))
-                        buf[base + col] = _argb_pixel(g, g, g)
-            tile = array.array("I")
-            for row in range(r0, r1):
-                tile.extend(buf[row * vw + c0 : row * vw + c1])
-            on_tile(c0, r0, tw, th, tile.tobytes())
+            fill_noise_rect_argb32(
+                perm,
+                buf,
+                vw,
+                c0,
+                c1,
+                r0,
+                r1,
+                start_x,
+                start_y,
+                wpp,
+                p.scale,
+                p.octaves,
+                p.persistence,
+                p.lacunarity,
+                low,
+                high,
+                red_px,
+                green_px,
+            )
+            tile_blob = b"".join(
+                buf[row * vw + c0 : row * vw + c1].tobytes() for row in range(r0, r1)
+            )
+            on_tile(c0, r0, tw, th, tile_blob)
     return False

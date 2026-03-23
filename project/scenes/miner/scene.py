@@ -74,10 +74,10 @@ class MinerScene(MyBaseScene):
         self._upgrade_levels: dict[str, int] = {}
         self._upgrade_panel: typing.Any = None
         self._upgrade_rows: list[typing.Any] = []
-        self._production_acc: dict[str, float] = {
-            "iron": 0.0,
-            "copper": 0.0,
-            "coal": 0.0,
+        self._production_acc: dict[ResourceType, float] = {
+            ResourceType.IRON: 0.0,
+            ResourceType.COPPER: 0.0,
+            ResourceType.COAL: 0.0,
         }
 
     @property
@@ -174,6 +174,7 @@ class MinerScene(MyBaseScene):
             sdl2.SDLK_ESCAPE,
             lambda e: self.game.queue_scene_switch("main_menu"),
         )
+        self.keyboard_event.on_up(sdl2.SDLK_F7, self._print_mouse_world_position)
 
     def stop(self) -> MyContext:
         self.system.clear_all()
@@ -181,6 +182,11 @@ class MinerScene(MyBaseScene):
 
     def _screen_to_world(self, screen_x: int, screen_y: int) -> tuple[float, float]:
         return self.viewport.to_world((float(screen_x), float(screen_y)))
+
+    def _print_mouse_world_position(self, event: sdl2.SDL_Event) -> None:
+        mx, my = self.game.mouse_state[0], self.game.mouse_state[1]
+        wx, wy = self._screen_to_world(mx, my)
+        print(f"mouse world: ({wx}, {wy})")
 
     def _toggle_tool(self, tool: str | None) -> None:
         if self._selected_tool == tool:
@@ -321,13 +327,13 @@ class MinerScene(MyBaseScene):
             miner.patch.deplete(1)
             if miner.patch.richness <= 0:
                 to_remove.append(miner)
-        for res in ("iron", "copper", "coal"):
+        for res in ResourceType:
             add = int(self._production_acc[res])
             if add > 0:
                 self._production_acc[res] -= add
-                if res == "iron":
+                if res is ResourceType.IRON:
                     self.iron += add
-                elif res == "copper":
+                elif res is ResourceType.COPPER:
                     self.copper += add
                 else:
                     self.coal += add
@@ -364,21 +370,21 @@ class MinerScene(MyBaseScene):
         iron_per_sec = sum(
             1
             for m in self.miners
-            if m.patch.resource_type == "iron" and m.patch.richness > 0
+            if m.patch.resource_type is ResourceType.IRON and m.patch.richness > 0
         )
         self._iron_per_sec_text.text = f"Iron/s: {iron_per_sec}"
         self._copper_text.text = f"Copper: {self.copper}"
         copper_per_sec = sum(
             1
             for m in self.miners
-            if m.patch.resource_type == "copper" and m.patch.richness > 0
+            if m.patch.resource_type is ResourceType.COPPER and m.patch.richness > 0
         )
         self._copper_per_sec_text.text = f"Copper/s: {copper_per_sec}"
         self._coal_text.text = f"Coal: {self.coal}"
         coal_per_sec = sum(
             1
             for m in self.miners
-            if m.patch.resource_type == "coal" and m.patch.richness > 0
+            if m.patch.resource_type is ResourceType.COAL and m.patch.richness > 0
         )
         self._coal_per_sec_text.text = f"Coal/s: {coal_per_sec}"
         mx, my = self.game.mouse_state[0], self.game.mouse_state[1]

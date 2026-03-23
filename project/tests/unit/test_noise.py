@@ -1,7 +1,49 @@
 """Tests for the Perlin noise generator."""
 
+import numpy as np
 import pytest
 from gamepart.noise import PerlinNoise
+from gamepart.noise_numba import fbm2d, fill_noise_rect_argb32
+
+
+def _argb_from_noise_value(
+    value: float,
+    low: float,
+    high: float,
+    red_px: int,
+    green_px: int,
+) -> int:
+    if value < low:
+        return red_px
+    if value > high:
+        return green_px
+    g = int(max(0.0, min(255.0, (value + 1.0) * 127.5)))
+    return (255 << 24) | (g << 16) | (g << 8) | g
+
+
+def _expected_argb_at_pixel(
+    perm: np.ndarray,
+    row: int,
+    col: int,
+    start_x: float,
+    start_y: float,
+    wpp: float,
+    scale: float,
+    octaves: int,
+    persistence: float,
+    lacunarity: float,
+    low: float,
+    high: float,
+    red_px: int,
+    green_px: int,
+) -> int:
+    wx = start_x + col * wpp
+    wy = start_y + row * wpp
+    inv_s = 1.0 / scale if scale else 1.0
+    sx = wx * inv_s if scale else wx
+    sy = wy * inv_s if scale else wy
+    value = float(fbm2d(perm, sx, sy, octaves, persistence, lacunarity))
+    return _argb_from_noise_value(value, low, high, red_px, green_px)
 
 
 class TestPerlinNoiseBasic:
@@ -14,7 +56,6 @@ class TestPerlinNoiseBasic:
         assert noise.persistence == 0.5
         assert noise.lacunarity == 2.0
         assert noise.scale == 1.0
-        assert noise.cache_size == 1024
 
     def test_instantiation_with_custom_params(self) -> None:
         noise = PerlinNoise(
@@ -23,14 +64,12 @@ class TestPerlinNoiseBasic:
             persistence=0.6,
             lacunarity=2.5,
             scale=10.0,
-            cache_size=512,
         )
         assert noise.seed == 42
         assert noise.octaves == 4
         assert noise.persistence == 0.6
         assert noise.lacunarity == 2.5
         assert noise.scale == 10.0
-        assert noise.cache_size == 512
 
 
 class TestPerlinNoiseDeterminism:
@@ -122,54 +161,6 @@ class TestPerlinNoiseGetDispatch:
             noise.get(1.0, 2.0, 3.0, 4.0)
 
 
-class TestPerlinNoiseCache:
-    """Tests for LRU cache behavior."""
-
-    def test_cache_enabled_by_default(self) -> None:
-        noise = PerlinNoise(seed=42)
-        noise.get1d(1.0)
-        noise.get1d(1.0)
-        info = noise.cache_info()
-        assert "1d" in info
-        cache_info_1d = info["1d"]
-        assert hasattr(cache_info_1d, "hits")
-        assert cache_info_1d.hits >= 1
-
-    def test_cache_disabled_with_zero_size(self) -> None:
-        noise = PerlinNoise(seed=42, cache_size=0)
-        noise.get1d(1.0)
-        info = noise.cache_info()
-        assert "1d" not in info
-
-    def test_clear_cache(self) -> None:
-        noise = PerlinNoise(seed=42)
-        noise.get1d(1.0)
-        noise.get1d(1.0)
-
-        info_before = noise.cache_info()
-        assert info_before["1d"].hits >= 1  # type: ignore[attr-defined]
-
-        noise.clear_cache()
-
-        info_after = noise.cache_info()
-        assert info_after["1d"].hits == 0  # type: ignore[attr-defined]
-
-    def test_cache_works_across_dimensions(self) -> None:
-        noise = PerlinNoise(seed=42)
-        noise.get1d(1.0)
-        noise.get2d(1.0, 2.0)
-        noise.get3d(1.0, 2.0, 3.0)
-
-        noise.get1d(1.0)
-        noise.get2d(1.0, 2.0)
-        noise.get3d(1.0, 2.0, 3.0)
-
-        info = noise.cache_info()
-        assert info["1d"].hits >= 1  # type: ignore[attr-defined]
-        assert info["2d"].hits >= 1  # type: ignore[attr-defined]
-        assert info["3d"].hits >= 1  # type: ignore[attr-defined]
-
-
 class TestPerlinNoiseOctaves:
     """Tests for octave/fBm functionality."""
 
@@ -253,3 +244,130 @@ class TestPerlinNoiseContinuity:
                     v1 = noise.get3d(x_float, y_float, z_float)
                     v2 = noise.get3d(x_float + 0.01, y_float + 0.01, z_float + 0.01)
                     assert abs(v1 - v2) < 0.3, "3D noise should be continuous"
+
+
+class TestFillNoiseRectArgb32:
+    def test_fill_noise_rect_argb32_matches_fbm2d(self) -> None:
+        scale = 12.5
+        octaves = 3
+        persistence = 0.55
+        lacunarity = 2.1
+        noise = PerlinNoise(
+            seed=17,
+            octaves=octaves,
+            persistence=persistence,
+            lacunarity=lacunarity,
+            scale=scale,
+        )
+        perm = noise.permutation_uint8
+        vw, vh = 23, 19
+        c0, c1 = 3, 18
+        r0, r1 = 2, 15
+        start_x = -0.7
+        start_y = 0.4
+        wpp = 0.055
+        low, high = -0.18, 0.22
+        red_px = (255 << 24) | (255 << 16)
+        green_px = (255 << 24) | (255 << 8)
+        buf = np.zeros(vw * vh, dtype=np.uint32)
+        fill_noise_rect_argb32(
+            perm,
+            buf,
+            vw,
+            c0,
+            c1,
+            r0,
+            r1,
+            start_x,
+            start_y,
+            wpp,
+            scale,
+            octaves,
+            persistence,
+            lacunarity,
+            low,
+            high,
+            red_px,
+            green_px,
+        )
+        for row in range(r0, r1):
+            for col in range(c0, c1):
+                expected = _expected_argb_at_pixel(
+                    perm,
+                    row,
+                    col,
+                    start_x,
+                    start_y,
+                    wpp,
+                    scale,
+                    octaves,
+                    persistence,
+                    lacunarity,
+                    low,
+                    high,
+                    red_px,
+                    green_px,
+                )
+                assert int(buf[row * vw + col]) == expected
+
+    def test_fill_noise_rect_argb32_matches_fbm2d_scale_zero(self) -> None:
+        octaves = 2
+        persistence = 0.5
+        lacunarity = 2.0
+        noise = PerlinNoise(
+            seed=99,
+            octaves=octaves,
+            persistence=persistence,
+            lacunarity=lacunarity,
+            scale=0.0,
+        )
+        perm = noise.permutation_uint8
+        vw, vh = 11, 9
+        c0, c1 = 0, vw
+        r0, r1 = 0, vh
+        start_x = 0.1
+        start_y = -0.2
+        wpp = 0.08
+        low, high = -0.5, 0.5
+        red_px = (255 << 24) | (255 << 16) | (10 << 8) | 10
+        green_px = (255 << 24) | (10 << 16) | (255 << 8) | 10
+        buf = np.zeros(vw * vh, dtype=np.uint32)
+        fill_noise_rect_argb32(
+            perm,
+            buf,
+            vw,
+            c0,
+            c1,
+            r0,
+            r1,
+            start_x,
+            start_y,
+            wpp,
+            0.0,
+            octaves,
+            persistence,
+            lacunarity,
+            low,
+            high,
+            red_px,
+            green_px,
+        )
+        for row in range(r0, r1):
+            for col in range(c0, c1):
+                expected = _expected_argb_at_pixel(
+                    perm,
+                    row,
+                    col,
+                    start_x,
+                    start_y,
+                    wpp,
+                    0.0,
+                    octaves,
+                    persistence,
+                    lacunarity,
+                    low,
+                    high,
+                    red_px,
+                    green_px,
+                )
+                assert int(buf[row * vw + col]) == expected
