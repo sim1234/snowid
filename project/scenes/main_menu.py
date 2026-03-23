@@ -1,3 +1,4 @@
+import sdl2
 from gamepart.context import Context
 from gamepart.gui import Panel
 from gamepart.gui.button import PrettyButton
@@ -25,6 +26,9 @@ class MainMenuScene(MyBaseScene):
 
     def start(self, context: Context) -> None:
         super().start(context)
+        self.keyboard_event.on_up(
+            sdl2.SDLK_ESCAPE, lambda e: self.game.queue_scene_switch("exit")
+        )
         panel = Panel(
             background_color=(40, 40, 40, 255),
         )
@@ -32,12 +36,14 @@ class MainMenuScene(MyBaseScene):
         start_btn = self._make_button("Start Balls", "balls")
         start_game_2_btn = self._make_button("Start Miner", "miner")
         start_test_btn = self._make_button("Start test", "test")
+        noise_debug_btn = self._make_button("Perlin noise (debug)", "noise_debug")
         settings_btn = self._make_button("Settings", "settings")
         quit_btn = self._make_button("Quit", "exit")
         buttons = [
             start_btn,
             start_game_2_btn,
             start_test_btn,
+            noise_debug_btn,
             settings_btn,
             quit_btn,
         ]

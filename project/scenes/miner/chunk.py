@@ -6,13 +6,13 @@ from gamepart.subsystem import SystemManager
 
 from .patch import ResourcePatch, ResourceType
 
-PATCH_GRID_STEP = 80
+PATCH_GRID_STEP = 120
 RICHNESS_BASE = 20
 RICHNESS_DISTANCE_FACTOR = 0.08
 RICHNESS_NOISE_SCALE = 50
 RICHNESS_MIN = 10
 RICHNESS_MAX = 500
-PATCH_THRESHOLD = 0.35
+PATCH_THRESHOLD = 0.42
 TYPE_SCALE = 200.0
 
 
@@ -32,9 +32,9 @@ class ResourceChunkManager(ChunkManager[ResourceChunk]):
         super().__init__(system, chunk_size)
         self._noise_patch = PerlinNoise(
             seed=seed,
-            octaves=4,
-            persistence=0.5,
-            scale=180.0,
+            octaves=3,
+            persistence=0.45,
+            scale=420.0,
         )
         self._noise_iron = PerlinNoise(
             seed=seed + 1000,

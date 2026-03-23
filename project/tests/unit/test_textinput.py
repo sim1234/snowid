@@ -3,10 +3,24 @@
 from unittest.mock import MagicMock
 
 import pytest
+import sdl2
 from gamepart.gui.textinput import TextInput
 
 
 class TestTextInput:
+    def test_unfocused_ignores_text_and_keyboard_events(self) -> None:
+        text_input = TextInput(text="seed")
+        text_input.focused = False
+        text_ev = MagicMock()
+        text_ev.type = sdl2.SDL_TEXTINPUT
+        text_ev.text.text = b"x"
+        assert text_input.event(text_ev) is False
+        assert text_input.text == "seed"
+
+        key_ev = MagicMock()
+        key_ev.type = sdl2.SDL_KEYDOWN
+        assert text_input.event(key_ev) is False
+
     def test_initialization(self) -> None:
         text_input = TextInput()
         assert text_input.text == ""

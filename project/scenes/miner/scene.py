@@ -1,3 +1,4 @@
+import functools
 import typing
 
 import sdl2
@@ -11,9 +12,18 @@ from gamepart.viewport import CulledFlippedViewPort, ViewPort
 from scenes.base import MyBaseScene
 
 from .chunk import ResourceChunkManager
-from .miner_entity import Miner
+from .miner_entity import MINER_SIZE, Miner, miner_points
 from .patch import ResourceType
-from .ui import create_resource_panel
+from .tools import KEY_SDLK_TO_SLOT, TOOL_BUILD_MINER, TOOL_DEMOLISH, TOOL_SLOTS
+from .ui import (
+    TOOL_BAR_NORMAL_COLOR,
+    TOOL_BAR_SELECTED_COLOR,
+    ToolSlotButton,
+    create_resource_panel,
+    create_tool_bar,
+    create_upgrade_panel,
+)
+from .upgrades import UPGRADE_MINER_SPEED, UPGRADES, production_rate_per_miner
 
 PANEL_WIDTH = 180
 OVERLAY_PANEL_X = 10
@@ -32,6 +42,8 @@ EDGE_PAN_MARGIN = 50
 EDGE_PAN_SPEED = 400.0
 ZOOM_MIN = 1 / 16
 ZOOM_MAX = 16.0
+GHOST_COLOR_VALID = (50, 200, 50, 120)
+GHOST_COLOR_INVALID = (200, 50, 50, 120)
 
 
 def _point_in_panel(panel: typing.Any, px: int, py: int) -> bool:
@@ -56,6 +68,17 @@ class MinerScene(MyBaseScene):
         self._coal_text: typing.Any = None
         self._coal_per_sec_text: typing.Any = None
         self._patch_tooltip: typing.Any = None
+        self._selected_tool: str | None = None
+        self._tool_bar_panel: typing.Any = None
+        self._tool_bar_buttons: list[ToolSlotButton] = []
+        self._upgrade_levels: dict[str, int] = {}
+        self._upgrade_panel: typing.Any = None
+        self._upgrade_rows: list[typing.Any] = []
+        self._production_acc: dict[str, float] = {
+            "iron": 0.0,
+            "copper": 0.0,
+            "coal": 0.0,
+        }
 
     @property
     def iron(self) -> int:
@@ -122,6 +145,26 @@ class MinerScene(MyBaseScene):
         )
         self.gui.add(self._patch_tooltip)
         self._patch_tooltip.visible = False
+        self._tool_bar_panel, self._tool_bar_buttons = create_tool_bar(
+            self.gui,
+            self.game.width,
+            self.game.height,
+            TOOL_SLOTS,
+            self._toggle_tool,
+        )
+        for key_sym, slot in KEY_SDLK_TO_SLOT.items():
+            self.keyboard_event.on_up(
+                key_sym,
+                functools.partial(self._handle_tool_slot_key, slot),
+            )
+        self._upgrade_panel, self._upgrade_rows = create_upgrade_panel(
+            self.gui,
+            OVERLAY_PANEL_X + PANEL_WIDTH + 10,
+            OVERLAY_PANEL_Y,
+            UPGRADES,
+            lambda uid: self._upgrade_levels.get(uid, 0),
+            self._on_upgrade_click,
+        )
         self.chunk_manager = ResourceChunkManager(self.system)
         self.chunk_manager.update((0.0, 0.0), rings=2)
         self.mouse_button_event.on_down(sdl2.SDL_BUTTON_LEFT, self._on_left_click)
@@ -138,6 +181,28 @@ class MinerScene(MyBaseScene):
 
     def _screen_to_world(self, screen_x: int, screen_y: int) -> tuple[float, float]:
         return self.viewport.to_world((float(screen_x), float(screen_y)))
+
+    def _toggle_tool(self, tool: str | None) -> None:
+        if self._selected_tool == tool:
+            self._selected_tool = None
+        else:
+            self._selected_tool = tool
+
+    def _handle_tool_slot_key(self, slot: int, event: sdl2.SDL_Event) -> None:
+        self._toggle_tool(TOOL_SLOTS[slot])
+
+    def _on_upgrade_click(self, upgrade_id: str) -> None:
+        upgrade = next(u for u in UPGRADES if u.id == upgrade_id)
+        level = self._upgrade_levels.get(upgrade_id, 0)
+        if level >= upgrade.max_level:
+            return
+        cost_iron, cost_copper, cost_coal = upgrade.cost(level)
+        if self.iron < cost_iron or self.copper < cost_copper or self.coal < cost_coal:
+            return
+        self.iron -= cost_iron
+        self.copper -= cost_copper
+        self.coal -= cost_coal
+        self._upgrade_levels[upgrade_id] = level + 1
 
     def _change_zoom(self, event: sdl2.SDL_Event) -> None:
         mx, my = self.game.mouse_state[0], self.game.mouse_state[1]
@@ -183,7 +248,23 @@ class MinerScene(MyBaseScene):
     def _on_left_click(self, event: sdl2.SDL_Event) -> None:
         if _point_in_panel(self._panel, event.button.x, event.button.y):
             return
+        if _point_in_panel(self._tool_bar_panel, event.button.x, event.button.y):
+            return
+        if _point_in_panel(self._upgrade_panel, event.button.x, event.button.y):
+            return
         wx, wy = self._screen_to_world(event.button.x, event.button.y)
+        if self._selected_tool == TOOL_DEMOLISH:
+            for i, miner in enumerate(self.miners):
+                if miner.contains_point((wx, wy)):
+                    self.miners.pop(i)
+                    self.system.remove_all(miner)
+                    self.iron += MINER_REFUND_IRON
+                    self.copper += MINER_REFUND_COPPER
+                    self.coal += MINER_REFUND_COAL
+                    return
+            return
+        if self._selected_tool != TOOL_BUILD_MINER:
+            return
         patch = self.chunk_manager.get_patch_at((wx, wy))
         if patch is None:
             return
@@ -205,6 +286,10 @@ class MinerScene(MyBaseScene):
     def _on_right_click(self, event: sdl2.SDL_Event) -> None:
         if _point_in_panel(self._panel, event.button.x, event.button.y):
             return
+        if _point_in_panel(self._tool_bar_panel, event.button.x, event.button.y):
+            return
+        if _point_in_panel(self._upgrade_panel, event.button.x, event.button.y):
+            return
         wx, wy = self._screen_to_world(event.button.x, event.button.y)
         for i, miner in enumerate(self.miners):
             if miner.contains_point((wx, wy)):
@@ -224,21 +309,28 @@ class MinerScene(MyBaseScene):
         self.chunk_manager.update(self.viewport.center, rings=2)
 
     def _run_miner_production(self) -> None:
+        speed_level = self._upgrade_levels.get(UPGRADE_MINER_SPEED, 0)
+        rate = production_rate_per_miner(speed_level)
         to_remove: list[Miner] = []
         for miner in self.miners:
             if miner.patch.richness <= 0:
                 to_remove.append(miner)
                 continue
             resource: ResourceType = miner.patch.resource_type
-            if resource == "iron":
-                self.iron += 1
-            elif resource == "copper":
-                self.copper += 1
-            else:
-                self.coal += 1
+            self._production_acc[resource] += rate
             miner.patch.deplete(1)
             if miner.patch.richness <= 0:
                 to_remove.append(miner)
+        for res in ("iron", "copper", "coal"):
+            add = int(self._production_acc[res])
+            if add > 0:
+                self._production_acc[res] -= add
+                if res == "iron":
+                    self.iron += add
+                elif res == "copper":
+                    self.copper += add
+                else:
+                    self.coal += add
         for miner in to_remove:
             self.miners.remove(miner)
             self.system.remove_all(miner)
@@ -246,6 +338,28 @@ class MinerScene(MyBaseScene):
     def every_frame(self, renderer: GfxRenderer) -> None:
         renderer.clear((30, 30, 35, 255))
         self.viewport.draw()
+        if self._selected_tool == TOOL_BUILD_MINER:
+            mx, my = self.game.mouse_state[0], self.game.mouse_state[1]
+            if (
+                not _point_in_panel(self._panel, mx, my)
+                and not _point_in_panel(self._tool_bar_panel, mx, my)
+                and not _point_in_panel(self._upgrade_panel, mx, my)
+            ):
+                wx, wy = self._screen_to_world(mx, my)
+                patch = self.chunk_manager.get_patch_at((wx, wy))
+                has_miner = patch is not None and any(
+                    m.patch is patch for m in self.miners
+                )
+                can_afford = (
+                    self.iron >= MINER_COST_IRON
+                    and self.copper >= MINER_COST_COPPER
+                    and self.coal >= MINER_COST_COAL
+                )
+                valid = patch is not None and not has_miner and can_afford
+                ghost_color = GHOST_COLOR_VALID if valid else GHOST_COLOR_INVALID
+                pts = miner_points(wx, wy, MINER_SIZE)
+                screen_pts = [[self.viewport.to_view_int(p) for p in pts]]
+                self.viewport.renderer.filled_polygon(screen_pts, ghost_color)
         self._iron_text.text = f"Iron: {self.iron}"
         iron_per_sec = sum(
             1
@@ -268,7 +382,11 @@ class MinerScene(MyBaseScene):
         )
         self._coal_per_sec_text.text = f"Coal/s: {coal_per_sec}"
         mx, my = self.game.mouse_state[0], self.game.mouse_state[1]
-        if not _point_in_panel(self._panel, mx, my):
+        if (
+            not _point_in_panel(self._panel, mx, my)
+            and not _point_in_panel(self._tool_bar_panel, mx, my)
+            and not _point_in_panel(self._upgrade_panel, mx, my)
+        ):
             world_pos = self._screen_to_world(mx, my)
             patch = self.chunk_manager.get_patch_at(world_pos)
             if patch is not None:
@@ -291,4 +409,21 @@ class MinerScene(MyBaseScene):
                 self._patch_tooltip.visible = False
         else:
             self._patch_tooltip.visible = False
+        for btn in self._tool_bar_buttons:
+            btn.background_color = (
+                TOOL_BAR_SELECTED_COLOR
+                if btn.tool == self._selected_tool
+                else TOOL_BAR_NORMAL_COLOR
+            )
+        iron, copper, coal = self.iron, self.copper, self.coal
+        for (level_text, cost_text, btn), upgrade in zip(self._upgrade_rows, UPGRADES):
+            level = self._upgrade_levels.get(upgrade.id, 0)
+            level_text.text = f"Lv {level}"
+            if level >= upgrade.max_level:
+                cost_text.text = "Max"
+                btn.enabled = False
+            else:
+                ci, cc, ccoal = upgrade.cost(level)
+                cost_text.text = f"{ci} Fe {cc} Cu {ccoal} Co"
+                btn.enabled = iron >= ci and copper >= cc and coal >= ccoal
         self.gui.draw()

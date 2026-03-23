@@ -7,6 +7,7 @@ from typing import Any, TypeVarTuple
 import sdl2
 import sdl2.ext
 import sdl2.sdlgfx
+from sdl2.render import SDL_Texture
 from sdl2.stdinc import Sint16
 
 _Ts = TypeVarTuple("_Ts")
@@ -35,6 +36,24 @@ class GfxRenderer(sdl2.ext.Renderer):
             ctypes.byref(rect),  # type: ignore[arg-type]
         )
         if ret:
+            raise sdl2.ext.SDLError()
+
+    def copy_texture(
+        self,
+        texture: SDL_Texture,
+        src: tuple[int, int, int, int],
+        dst: tuple[float, float, float, float],
+    ) -> None:
+        """Blit a texture subrect to a float destination rect (SDL_RenderCopyF)."""
+        src_rect = sdl2.SDL_Rect(*src)
+        dst_rect = sdl2.SDL_FRect(*dst)
+        ret = sdl2.SDL_RenderCopyF(
+            self.sdlrenderer,
+            texture,
+            ctypes.byref(src_rect),  # type: ignore[arg-type]
+            ctypes.byref(dst_rect),  # type: ignore[arg-type]
+        )
+        if ret < 0:
             raise sdl2.ext.SDLError()
 
     @contextmanager

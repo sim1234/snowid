@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 MINER_SIZE = 8.0
 
 
-def _miner_points(
+def miner_points(
     center_x: float, center_y: float, size: float
 ) -> list[tuple[float, float]]:
     return [
@@ -26,7 +26,7 @@ class Miner(Polygon):
         self.patch = patch
         self.position = patch.position
         self.angle = 0.0
-        self.points = _miner_points(patch.position[0], patch.position[1], MINER_SIZE)
+        self.points = miner_points(patch.position[0], patch.position[1], MINER_SIZE)
         self.color = (60, 60, 80, 255)
 
     def contains_point(self, world_pos: tuple[float, float]) -> bool:

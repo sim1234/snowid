@@ -108,6 +108,7 @@ class TextInput(TextController, Text):
         self.keyboard_event_dispatcher.on_down(sdl2.SDLK_RETURN2, self.on_enter)
         self.keyboard_event_dispatcher.on_down(sdl2.SDLK_LEFT, self.on_left)
         self.keyboard_event_dispatcher.on_down(sdl2.SDLK_RIGHT, self.on_right)
+        self.keyboard_event_dispatcher.on_up(sdl2.SDLK_ESCAPE, self.on_escape)
         self.keyboard_event_dispatcher.on_down(sdl2.SDLK_v, self.on_v)
 
     def focus(self) -> None:
@@ -148,12 +149,21 @@ class TextInput(TextController, Text):
         cursor.draw()
 
     def event(self, event: sdl2.SDL_Event) -> bool:
+        if event.type in (sdl2.SDL_MOUSEBUTTONDOWN, sdl2.SDL_MOUSEBUTTONUP):
+            if self.contains_point(event.button.x, event.button.y):
+                if not self.focused:
+                    self.gui_system.change_focus(self)
+                    self.press_end()  # TODO: move cursor to mouse position
+                return True
+            elif self.focused:
+                self.gui_system.change_focus(None)
+            return False
         if not self.focused:
             return False
         if event.type == sdl2.SDL_TEXTINPUT:
             self.enter_text(bytes(event.text.text).decode())
             return True
-        elif event.type in (sdl2.SDL_KEYDOWN, sdl2.SDL_KEYUP):
+        if event.type in (sdl2.SDL_KEYDOWN, sdl2.SDL_KEYUP):
             return self.keyboard_event_dispatcher(event)
         return False
 
@@ -196,6 +206,10 @@ class TextInput(TextController, Text):
     def on_enter(self, event: sdl2.SDL_Event) -> bool:
         if self.on_submit:
             self.on_submit(self.text)
+        return True
+
+    def on_escape(self, event: sdl2.SDL_Event) -> bool:
+        self.gui_system.change_focus(None)
         return True
 
     def clear(self) -> None:
